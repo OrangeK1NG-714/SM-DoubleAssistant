@@ -53,7 +53,41 @@ console.log('index')
 
 <template>
   <view class="bg-white px-4 pt-2" :style="{ marginTop: `${safeAreaInsets?.top}px` }">
-    <view class="mt-10">
+    <view class="mt-10 flex items-center justify-center">
+      浙江科技大学数媒专业导师互选系统
+    </view>
+    <view class="ml-6 mr-6 mt-10 flex pb-2" style="border-bottom: 1px solid #000;">
+      <view>账号</view>
+      <view>
+        <image class="ml-2 h-6 w-6" src="../../assets/login/user.png" />
+      </view>
+      <view class="flex">
+        <input class="uni-input" placeholder="请输入密码" :password="showPassword">
+        <text
+          class="uni-icon" :class="[!showPassword ? 'uni-eye-active' : '']"
+          @click="changePassword"
+        >
+          &#xe568;
+        </text>
+      </view>
+    </view>
+    <view class="ml-6 mr-6 mt-1 flex pb-2" style="border-bottom: 1px solid #000;">
+      <view>密码</view>
+      <view>
+        <image class="ml-2 h-6 w-6" src="../../assets/login/user.png" />
+      </view>
+      <view class="flex">
+        <input class="uni-input" placeholder="请输入密码" :password="showPassword">
+        <text
+          class="uni-icon" :class="[!showPassword ? 'uni-eye-active' : '']"
+          @click="changePassword"
+        >
+          &#xe568;
+        </text>
+      </view>
+    </view>
+  </view>
+  <!-- <view class="mt-10">
       <image src="/static/logo.svg" alt="" class="mx-auto block h-28 w-28" />
     </view>
     <view class="mt-4 text-center text-4xl text-[#d14328]">
@@ -90,6 +124,5 @@ console.log('index')
       <text class="text-green-500">
         base
       </text>
-    </view>
-  </view>
+    </view> -->
 </template>
