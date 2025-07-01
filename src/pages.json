@@ -27,7 +27,7 @@
       {
         "iconPath": "static/tabbar/home.png",
         "selectedIconPath": "static/tabbar/homeHL.png",
-        "pagePath": "pages/index/index",
+        "pagePath": "pages/login/login",
         "text": "首页",
         "icon": "home",
         "iconType": "uiLib"
@@ -43,6 +43,15 @@
     ]
   },
   "pages": [
+    {
+      "path": "pages/login/login",
+      "type": "home",
+      "layout": "tabbar",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "首页"
+      }
+    },
     {
       "path": "pages/index/index",
       "type": "home",

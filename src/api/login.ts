@@ -1,14 +1,15 @@
 import type { ICaptcha, IUpdateInfo, IUpdatePassword, IUserInfoVo, IUserLogin } from './types/login'
 import { http } from '@/utils/http'
 
+const localhost = 'http://127.0.0.1:7001'
 /**
  * 登录表单
  */
 export interface ILoginForm {
   username: string
   password: string
-  code: string
-  uuid: string
+  // code: string
+  // uuid: string
 }
 
 /**
@@ -24,14 +25,14 @@ export function getCode() {
  * @param loginForm 登录表单
  */
 export function login(loginForm: ILoginForm) {
-  return http.post<IUserLogin>('/user/login', loginForm)
+  return http.post<IUserLogin>(`${localhost}/api/user/login`, loginForm)
 }
 
 /**
- * 获取用户信息
+ * 获取用户信息(需要token)
  */
-export function getUserInfo() {
-  return http.get<IUserInfoVo>('/user/info')
+export function getUserInfo(username: string, role: string) {
+  return http.get<IUserInfoVo>(`${localhost}/api/user/detail`, { username, role }, { requireAuth: true })
 }
 
 /**

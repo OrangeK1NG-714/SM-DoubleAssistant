@@ -1,10 +1,24 @@
 import type { CustomRequestOptions } from '@/interceptors/request'
 
 export function http<T>(options: CustomRequestOptions) {
-  // 1. 返回 Promise 对象
+  // 1. 获取当前 token
+  const token = uni.getStorageSync('token')
+  // 2. 如果接口需要认证但无 token，直接跳转登录页
+  if (options.requireAuth && !token) {
+    uni.redirectTo({ url: '/pages/login/login' })
+    return Promise.reject(new Error('未登录，请先登录'))
+  }
+
+  // 3. 返回 Promise 对象
   return new Promise<IResData<T>>((resolve, reject) => {
+    // 4. 添加 Authorization 请求头
+    const headers = {
+      ...options.header,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    }
     uni.request({
       ...options,
+      header: headers, // 注入携带 token 的 header
       dataType: 'json',
       // #ifndef MP-WEIXIN
       responseType: 'json',
@@ -18,9 +32,9 @@ export function http<T>(options: CustomRequestOptions) {
         }
         else if (res.statusCode === 401) {
           // 401错误  -> 清理用户信息，跳转到登录页
-          // userStore.clearUserInfo()
-          // uni.navigateTo({ url: '/pages/login/login' })
-          reject(res)
+          uni.removeStorageSync('token')
+          uni.redirectTo({ url: '/pages/login/login' })
+          reject(new Error('登录已过期，请重新登录'))
         }
         else {
           // 其他错误 -> 根据后端错误信息轻提示

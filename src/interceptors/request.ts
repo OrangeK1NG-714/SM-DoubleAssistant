@@ -4,6 +4,7 @@ import { platform } from '@/utils/platform'
 import { stringifyQuery } from '@/utils/queryString'
 
 export type CustomRequestOptions = UniApp.RequestOptions & {
+  requireAuth?: boolean
   query?: Record<string, any>
   /** 出错时是否隐藏错误提示 */
   hideErrorToast?: boolean

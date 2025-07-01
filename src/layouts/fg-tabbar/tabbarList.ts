@@ -23,7 +23,7 @@ export const tabbarList = [
   {
     iconPath: 'static/tabbar/home.png',
     selectedIconPath: 'static/tabbar/homeHL.png',
-    pagePath: 'pages/index/index',
+    pagePath: 'pages/login/login',
     text: '首页',
     icon: 'home',
     // 选用 UI  框架自带的 icon时，iconType 为 uiLib
