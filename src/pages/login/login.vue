@@ -5,19 +5,24 @@
   style: {
     // 'custom' 表示开启自定义导航栏，默认 'default'
     navigationStyle: 'custom',
-    navigationBarTitleText: '首页',
+    navigationBarTitleText: '登录',
   },
 }
 </route>
 
 <script lang="ts" setup>
 import { getUserInfo, login } from '@/api/login'
+import { useUserStore } from '@/store/user'
 import PLATFORM from '@/utils/platform'
 
 defineOptions({
   name: 'Home',
 })
 
+onLoad(() => {
+  const useStore = useUserStore()
+  console.log(useStore.userInfo)
+})
 // 获取屏幕边界到安全区域距离
 let safeAreaInsets
 let systemInfo
@@ -40,10 +45,7 @@ safeAreaInsets = systemInfo.safeArea
 systemInfo = uni.getSystemInfoSync()
 safeAreaInsets = systemInfo.safeAreaInsets
 // #endif
-const author = ref('菲鸽')
-const description = ref(
-  'unibest 是一个集成了多种工具和技术的 uniapp 开发模板，由 uniapp + Vue3 + Ts + Vite5 + UnoCss + VSCode 构建，模板具有代码提示、自动格式化、统一配置、代码片段等功能，并内置了许多常用的基本组件和基本功能，让你编写 uniapp 拥有 best 体验。',
-)
+
 // 表单数据
 const username = ref('')
 const password = ref('')
@@ -65,23 +67,31 @@ async function handleLogin() {
       username: username.value,
       password: password.value,
     })
-    console.log(res)
-
     if (res.code === 200) {
       uni.showToast({
         title: '登录成功',
         icon: 'success',
       })
       // 存储token
+      const useStore = useUserStore()
+      useStore.setUserInfo(res.data.username, res.data.role, res.data.token)
       uni.setStorageSync('token', res.data.token)
       const resUserInfo = await getUserInfo(username.value, res.data.role)
       console.log(resUserInfo)
-      console.log(123)
+      console.log(res)
 
-      // 跳转页面
-      uni.navigateTo({
-        url: '/pages/index/index',
-      })
+      if (res.data.role === 'student' &&resUserInfo.isEmpty===0) {
+        // 跳转页面
+        uni.navigateTo({
+          url: '/pages/userMsg/index',
+        })
+      }
+      else {
+        // 跳转页面
+        uni.navigateTo({
+          url: '/pages/index/index',
+        })
+      }
     }
   }
   catch (error) {

@@ -2,9 +2,8 @@
  * 用户信息
  */
 export interface IUserInfoVo {
-  id: number
   username: string
-  avatar: string
+  role: string
   token: string
 }
 

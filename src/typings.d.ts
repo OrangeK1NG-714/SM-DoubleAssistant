@@ -2,6 +2,7 @@
 
 declare global {
   interface IResData<T> {
+    isEmpty?: number
     code: number
     msg: string
     data: T

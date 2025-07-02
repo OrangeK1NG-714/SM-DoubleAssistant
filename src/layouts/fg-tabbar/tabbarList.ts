@@ -14,7 +14,7 @@ export const TABBAR_MAP = {
   CUSTOM_TABBAR_WITHOUT_CACHE: 3,
 }
 // TODO：通过这里切换使用tabbar的策略
-export const selectedTabbarStrategy = TABBAR_MAP.NATIVE_TABBAR
+export const selectedTabbarStrategy = TABBAR_MAP.NO_TABBAR
 
 // selectedTabbarStrategy==NATIVE_TABBAR(1) 时，需要填 iconPath 和 selectedIconPath
 // selectedTabbarStrategy==CUSTOM_TABBAR(2,3) 时，需要填 icon 和 iconType
@@ -32,7 +32,7 @@ export const tabbarList = [
   {
     iconPath: 'static/tabbar/example.png',
     selectedIconPath: 'static/tabbar/exampleHL.png',
-    pagePath: 'pages/about/about',
+    pagePath: 'pages/index/index',
     text: '关于',
     icon: 'i-carbon-code',
     // 注意 unocss 的图标需要在 页面上引入一下，或者配置到 unocss.config.ts 的 safelist 中
