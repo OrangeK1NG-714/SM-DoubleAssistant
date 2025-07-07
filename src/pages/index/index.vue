@@ -10,19 +10,62 @@ layout: 'default',
 
 <script lang="ts" setup>
 // 脚本部分保持不变
-import { login } from '@/api/login'
+import { getActivityList } from '@/api/useraction'
 import { useUserStore } from '@/store/user'
+
 import PLATFORM from '@/utils/platform'
 
 defineOptions({
   name: 'Home',
 })
+const useStore = useUserStore()
+onLoad(async () => {
+  const res = await getActivityList()
+  console.log(res)
+  // 分类活动
+  classifyActivities(res as any)
+})
+const nowDate = ref(new Date())
+console.log(nowDate)
 
 const role = ref('student')
 const name = ref('张三')
 const activeTab = ref('ongoing')
-const ongoingList = ref([{ id: 1, name: '2023年导师互选' }])
-const endedList = ref([{ id: 2, name: '2022年导师互选' }])
+const ongoingList = ref<Array<any>>([])
+const endedList = ref<Array<any>>([])
+console.log(ongoingList.value)
+console.log(endedList.value)
+
+// 分类活动函数
+function classifyActivities(activities: Array<any>) {
+  const now = nowDate.value
+
+  activities.forEach((activity) => {
+    const startDate = new Date(activity.startDate)
+    const endDate = new Date(activity.endDate)
+
+    if (now >= startDate && now <= endDate) {
+      // 进行中的活动
+      ongoingList.value.push({
+        id: activity._id,
+        name: activity.name,
+        description: activity.description,
+        startDate: activity.startDate,
+        endDate: activity.endDate,
+      })
+    }
+    else {
+      // 已结束的活动
+      endedList.value.push({
+        id: activity._id,
+        name: activity.name,
+        description: activity.description,
+        startDate: activity.startDate,
+        endDate: activity.endDate,
+      })
+    }
+  })
+}
 
 function switchTab(tab: string) {
   activeTab.value = tab
@@ -36,8 +79,15 @@ function myStudent() {
   uni.showToast({ title: '我的学生', icon: 'none' })
 }
 
-function enterSystem() {
+function enterSystem(id: string) {
+  console.log(123)
+  console.log(id)
   uni.showToast({ title: '进入系统', icon: 'none' })
+  useStore.setActivityId(id)
+  console.log(useStore.userInfo)
+  uni.navigateTo({
+    url: '/pages/s_choose/index',
+  })
 }
 
 // 安全区域处理保持不变
@@ -60,11 +110,6 @@ safeAreaInsets = systemInfo.safeArea
 systemInfo = uni.getSystemInfoSync()
 safeAreaInsets = systemInfo.safeAreaInsets
 // #endif
-
-onLoad(() => {
-  const useStore = useUserStore()
-  console.log(useStore.userInfo)
-})
 </script>
 
 <template>
@@ -126,7 +171,7 @@ onLoad(() => {
             </button>
             <button
               class="flex-1 border border-gray-300 rounded bg-white py-2 text-gray-700 active:bg-gray-100"
-              @tap="enterSystem"
+              @tap="enterSystem(item.id)"
             >
               进入系统
             </button>

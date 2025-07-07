@@ -15,7 +15,9 @@ const userInfoState: IUserInfoVo = {
   username: '',
   role: '',
   token: '',
+  activityId: '',
 }
+// 带入活动id
 
 export const useUserStore = defineStore(
   'user',
@@ -36,6 +38,9 @@ export const useUserStore = defineStore(
         token,
       }
     }
+    const setActivityId = (activityId: string) => {
+      userInfo.value.activityId = activityId
+    }
     const getUserInfo = () => {
 
     }
@@ -47,6 +52,7 @@ export const useUserStore = defineStore(
     }
     return {
       userInfo,
+      setActivityId,
       setUserInfo,
       clearUserInfo,
     }

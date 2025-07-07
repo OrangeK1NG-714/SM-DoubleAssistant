@@ -5,6 +5,7 @@ export interface IUserInfoVo {
   username: string
   role: string
   token: string
+  activityId?: string
 }
 
 /**

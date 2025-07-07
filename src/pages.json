@@ -49,6 +49,14 @@
       }
     },
     {
+      "path": "pages/s_choose/index",
+      "type": "page",
+      "layout": "default",
+      "style": {
+        "navigationBarTitleText": "选择页面"
+      }
+    },
+    {
       "path": "pages/userMsg/index",
       "type": "page",
       "layout": "default",
