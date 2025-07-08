@@ -11,9 +11,26 @@ interface IActivityList {
   endTime: string
 }
 
+interface IChooseCount {
+  _id: string
+  studentId: string
+  teacherId: string
+  activityId: string
+  order: string
+  isChose: boolean
+}
 /**
  * 获取活动列表
  */
 export function getActivityList() {
   return http.get<IActivityList>(`${localhost}/api/admin/getActivityList`)
+}
+
+/**
+ * 查询已选学生(通过老师id)
+ */
+export function getChooseCount(teacherId: string) {
+  return http.get<IChooseCount>(`${localhost}/api/user/getChooseCount`, {
+    teacherId,
+  })
 }

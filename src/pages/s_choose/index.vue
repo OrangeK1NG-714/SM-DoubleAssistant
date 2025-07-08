@@ -11,10 +11,13 @@
 <script lang="ts" setup>
 import { onLoad } from '@dcloudio/uni-app'
 import { ref } from 'vue'
+import { getTeacherListInActivity } from '@/api/stdInfo'
 import { getTeacherList } from '@/api/teaInfo'
+import { getChooseCount } from '@/api/useraction'
 import { useUserStore } from '@/store/user'
 
 import PLATFORM from '@/utils/platform'
+
 // 安全区域处理
 let safeAreaInsets
 let systemInfo
@@ -36,10 +39,6 @@ systemInfo = uni.getSystemInfoSync()
 safeAreaInsets = systemInfo.safeAreaInsets
 // #endif
 
-onLoad(async () => {
-  const res = await getTeacherList()
-  console.log(res.data)
-})
 // 数据定义
 const activeTab = ref('major') // 当前激活的选项卡
 const showSubmitCard = ref(false) // 是否显示提交卡片
@@ -47,11 +46,12 @@ const scrollHeight = ref(0) // 滚动区域高度
 const isProgressPage = ref(false) // 是否是进度页面
 
 // 导师数据
-const majorList = ref([
-  { id: '1', name: '专业导师1', number: 15, selected: false },
-  { id: '2', name: '专业导师2', number: 20, selected: false },
-  // 更多数据...
-])
+const majorList = ref<Array<any>>([])
+// const majorList = ref<Array<any>>([
+//   { id: '1', name: '专业导师1', number: 15, selected: false },
+//   { id: '2', name: '专业导师2', number: 20, selected: false },
+//   // 更多数据...
+// ])
 
 const selectedMentors = ref([]) // 已选导师列表
 const priority = ref([]) // 志愿优先级
@@ -126,16 +126,53 @@ function preventTouchMove() {
 onLoad(() => {
   calculateScrollHeight()
 })
+onLoad(async () => {
+  const store = useUserStore()
+  console.log(store.userInfo)
+  const res: any = await getTeacherList()
+  const teacherList: any = await getTeacherListInActivity(useUserStore().userInfo.activityId)
+  console.log(res.data)
+  console.log(teacherList)
+  // 提取teacherList中所有的teacherId
+  const existingTeacherIds = teacherList.map(teacher => teacher.teacherId)
+
+  // 过滤res.data，只保留存在于existingTeacherIds中的老师
+  majorList.value = res.data.filter(teacher =>
+    existingTeacherIds.includes(teacher.teacherId),
+  )
+  const requests = majorList.value.map(async (teacher) => {
+    try {
+      // const response =
+      const response: any = await getChooseCount(teacher.teacherId)
+      console.log(response)
+
+      return {
+        ...teacher,
+        selectedCount: response.data,
+      }
+    }
+    catch (error) {
+      console.error(`获取老师 ${teacher.name} 的选择学生数失败:`, error)
+      // 如果请求失败，默认设为 0
+      return {
+        ...teacher,
+        selectedCount: 0,
+      }
+    }
+  })
+  majorList.value = await Promise.all(requests)
+  console.log(majorList.value)
+})
 </script>
 
 <template>
   <view class="bg-white px-4" :style="{ marginTop: `${safeAreaInsets?.top}px` }">
     <!-- 头部选项卡 -->
     <view class="header">
-      <view class="tabs mb-4 flex border-b border-gray-200">
+      <view class="tabs flex border-b border-gray-200">
         <view
-          v-for="tab in ['major', 'public', 'alumni']" :key="tab"
-          class="flex-1 py-4 text-center transition-colors" :class="{
+          v-for="tab in ['major', 'public', 'alumni']" :key="tab" class="flex-1 py-4 text-center transition-colors"
+          :class="{
             'text-green-500 border-b-2 border-green-500 font-medium': activeTab === tab,
             'text-gray-500': activeTab !== tab,
           }" @tap="switchTab(tab)"
@@ -189,10 +226,7 @@ onLoad(() => {
             </text>
           </view>
           <view class="action-buttons flex flex-1 justify-center space-x-2">
-            <button
-              class="btn-detail rounded bg-gray-100 px-3 py-1 text-sm text-gray-700"
-              @tap="viewDetail(item.id)"
-            >
+            <button class="btn-detail rounded bg-gray-100 px-3 py-1 text-sm text-gray-700" @tap="viewDetail(item.id)">
               查看
             </button>
             <button
@@ -222,7 +256,7 @@ onLoad(() => {
 
     <!-- 已选导师信息栏 -->
     <view
-      class="selected-mentors-bar fixed bottom-32 left-0 right-0 z-50 h-10 flex items-center justify-between border-t border-gray-200 bg-gray-100 px-4"
+      class="selected-mentors-bar fixed bottom-18 left-0 right-0 z-50 h-10 flex items-center justify-between border-t border-gray-200 bg-gray-100 px-4"
     >
       <view class="selected-mentors-bar-mentors-info flex items-center">
         <text class="text-sm text-gray-600">
@@ -246,15 +280,13 @@ onLoad(() => {
     <view class="bottom-nav fixed bottom-0 left-0 right-0 z-50 flex border-t border-gray-200 bg-white p-2">
       <button
         class="nav-btn mx-1 flex-1 rounded py-2"
-        :class="isProgressPage ? 'bg-gray-200 text-gray-600' : 'bg-blue-500 text-white'"
-        @tap="navigateToMyChoices"
+        :class="isProgressPage ? 'bg-gray-200 text-gray-600' : 'bg-blue-500 text-white'" @tap="navigateToMyChoices"
       >
         我的志愿
       </button>
       <button
         class="nav-btn mx-1 flex-1 rounded py-2"
-        :class="isProgressPage ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-600'"
-        @tap="navigateToProgress"
+        :class="isProgressPage ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-600'" @tap="navigateToProgress"
       >
         选择页面
       </button>
@@ -274,10 +306,7 @@ onLoad(() => {
         </button>
       </view>
       <view class="card-content">
-        <view
-          v-for="(item, index) in selectedMentors" :key="item.id"
-          class="mentor-item border-b border-gray-100 py-3"
-        >
+        <view v-for="(item, index) in selectedMentors" :key="item.id" class="mentor-item border-b border-gray-100 py-3">
           <text class="mentor-name">
             {{ item.name }}
           </text>
