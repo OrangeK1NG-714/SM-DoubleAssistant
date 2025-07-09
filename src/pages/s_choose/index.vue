@@ -39,6 +39,8 @@ systemInfo = uni.getSystemInfoSync()
 safeAreaInsets = systemInfo.safeAreaInsets
 // #endif
 
+const store = useUserStore()
+
 // 数据定义
 const activeTab = ref('major') // 当前激活的选项卡
 const showSubmitCard = ref(false) // 是否显示提交卡片
@@ -53,13 +55,29 @@ const majorList = ref<Array<any>>([])
 //   // 更多数据...
 // ])
 
-const selectedMentors = ref([]) // 已选导师列表
+const selectedMentors = ref<Array<any>>([]) // 已选导师列表
 const priority = ref([]) // 志愿优先级
 const priorityOptions = ref([
   { label: '第一志愿', value: 1 },
   { label: '第二志愿', value: 2 },
   { label: '第三志愿', value: 3 },
 ])
+
+// 中本判断位
+const isEight = ref<boolean>(false)
+// 志愿是否重复判断
+const duplicates = ref()
+
+function formatDate(date: Date) {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  const hours = String(now.getHours()).padStart(2, '0')
+  const minutes = String(now.getMinutes()).padStart(2, '0')
+  const seconds = String(now.getSeconds()).padStart(2, '0')
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}Z`
+}
 
 // 计算滚动区域高度
 function calculateScrollHeight() {
@@ -78,11 +96,54 @@ function viewDetail(id: string) {
 }
 
 // 切换选择状态
-function toggleSelect(id: string) {
-  const index = majorList.value.findIndex(item => item.id === id)
-  if (index !== -1) {
-    majorList.value[index].selected = !majorList.value[index].selected
+function toggleSelect(teacherId: string) {
+  const index = majorList.value.findIndex(item => item.teacherId === teacherId)
+  if (index === -1)
+    return
+
+  const teacher = majorList.value[index]
+  const wasSelected = teacher.selected
+
+  // 仅在新增选择时检查数量限制
+  if (!wasSelected && selectedMentors.value.length >= 3) {
+    uni.showToast({
+      title: '最多只能选3个导师',
+      icon: 'none',
+      duration: 1000,
+    })
+    return
   }
+
+  // 原子化更新数据
+  const updatedList = [...majorList.value]
+  updatedList[index] = {
+    ...teacher,
+    selected: !wasSelected,
+    number: wasSelected ? teacher.number - 1 : teacher.number + 1,
+  }
+  majorList.value = updatedList
+
+  // 更新已选列表
+  if (!wasSelected) {
+    selectedMentors.value = [...selectedMentors.value, {
+      studentId: store.userInfo.username,
+      teacherId: teacher.teacherId,
+      activityId: store.userInfo.activityId,
+      name: teacher.name,
+    }]
+  }
+  else {
+    selectedMentors.value = selectedMentors.value.filter(item => item.teacherId !== teacherId)
+    // 同步清除对应志愿顺序
+    const priorityIndex = priority.value.findIndex((_, i) =>
+      selectedMentors.value[i]?.teacherId === teacherId,
+    )
+    console.log(priorityIndex)
+    if (priorityIndex !== -1) {
+      priority.value.splice(priorityIndex, 1)
+    }
+  }
+  console.log(selectedMentors.value)
 }
 
 // 切换提交卡片显示状态
@@ -98,12 +159,53 @@ function closeCard() {
 // 改变志愿优先级
 function changePriority(e: any, index: number) {
   priority.value[index] = e.detail.value
+  console.log(priority.value)
+  // 实时检查是否有重复
+  duplicates.value = priority.value.filter((p, i) =>
+    p !== undefined && priority.value.indexOf(p) !== i,
+  )
+
+  if (duplicates.value.length > 0) {
+    uni.showToast({
+      title: '志愿顺序不能重复！',
+      icon: 'none',
+    })
+  }
 }
 
 // 提交志愿
 function handleSubmit() {
-  uni.showToast({ title: '志愿提交成功', icon: 'success' })
-  showSubmitCard.value = false
+  // uni.showToast({ title: '志愿提交成功', icon: 'success' })
+  // showSubmitCard.value = false
+
+  // 1.检查是否选了3个导师
+  if (selectedMentors.value.length !== 3) {
+    uni.showToast({ title: '提交失败!请选择3个导师后再次提交!', icon: 'none' })
+    showSubmitCard.value = false
+    return
+  }
+  // 2. 检查是否所有导师都设置了志愿
+  if (priority.value.length !== 3 || priority.value.some(p => p === undefined || p === null)) {
+    uni.showToast({
+      title: '请为所有导师设置志愿顺序',
+      icon: 'none',
+      duration: 2000,
+    })
+    return
+  }
+  // 3.检查是否志愿重复
+  if (duplicates.value.length > 0) {
+    uni.showToast({
+      title: '志愿顺序不能重复！',
+      icon: 'none',
+      duration: 2000,
+    })
+    return
+  }
+  const nowDate = formatDate(new Date())
+  console.log(nowDate)
+
+  console.log(123)
 }
 
 // 导航到我的志愿
@@ -129,6 +231,11 @@ onLoad(() => {
 onLoad(async () => {
   const store = useUserStore()
   console.log(store.userInfo)
+  // 中本判断
+  if (store.userInfo.username[store.userInfo.username.length - 5] === '8') {
+    isEight.value = true
+  }
+
   const res: any = await getTeacherList()
   const teacherList: any = await getTeacherListInActivity(useUserStore().userInfo.activityId)
   console.log(res.data)
@@ -145,10 +252,10 @@ onLoad(async () => {
       // const response =
       const response: any = await getChooseCount(teacher.teacherId)
       console.log(response)
-
       return {
         ...teacher,
-        selectedCount: response.data,
+        number: response.length,
+        selected: false,
       }
     }
     catch (error) {
@@ -156,7 +263,9 @@ onLoad(async () => {
       // 如果请求失败，默认设为 0
       return {
         ...teacher,
-        selectedCount: 0,
+        number: 0,
+        selected: false,
+
       }
     }
   })
@@ -207,7 +316,7 @@ onLoad(async () => {
           class="list-item flex items-center justify-center border-b border-gray-100 py-3"
         >
           <view class="list-item1 flex flex-1 items-center justify-center text-center">
-            <image src="/static/user.png" class="mr-1 h-5 w-5" />
+            <image src="/static/icons/user.svg" class="mr-1 h-5 w-5" />
             {{ item.name }}
           </view>
           <view
@@ -231,7 +340,7 @@ onLoad(async () => {
             </button>
             <button
               class="btn-select rounded px-3 py-1 text-sm text-white"
-              :class="item.selected ? 'bg-gray-400' : 'bg-green-500'" @tap="toggleSelect(item.id)"
+              :class="item.selected ? 'bg-gray-400' : 'bg-green-500'" @tap="toggleSelect(item.teacherId)"
             >
               {{ item.selected ? '已选' : '未选' }}
             </button>

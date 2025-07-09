@@ -80,7 +80,7 @@ async function handleLogin() {
       console.log(resUserInfo)
       console.log(res)
 
-      if (res.data.role === 'student' &&resUserInfo.isEmpty===0) {
+      if (res.data.role === 'student' && resUserInfo.isEmpty === 0) {
         // 跳转页面
         uni.navigateTo({
           url: '/pages/userMsg/index',
@@ -114,7 +114,7 @@ console.log('index')
     <view class="ml-6 mr-6 mt-10 flex pb-2" style="border-bottom: 1px solid rgba(0, 0, 0, 0.1);">
       <view>账号</view>
       <view>
-        <image class="ml-2 h-6 w-6" src="../../assets/login/user.png" />
+        <image class="ml-2 h-6 w-6" src="/static/icons/loginUser.svg" />
       </view>
       <view class="flex">
         <input v-model="username" class="pl-2" placeholder="请输入学号/工号">
@@ -129,7 +129,7 @@ console.log('index')
     <view class="ml-6 mr-6 mt-4 flex pb-2" style="border-bottom: 1px solid rgba(0, 0, 0, 0.1);">
       <view>密码</view>
       <view>
-        <image class="ml-2 h-6 w-6" src="../../assets/login/password.png" />
+        <image class="ml-2 h-6 w-6" src="/static/icons/loginPassword.svg" />
       </view>
       <view class="flex">
         <input v-model="password" class="pl-2" placeholder="请输入密码">
