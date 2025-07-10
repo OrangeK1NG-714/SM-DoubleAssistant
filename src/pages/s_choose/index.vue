@@ -11,9 +11,9 @@
 <script lang="ts" setup>
 import { onLoad } from '@dcloudio/uni-app'
 import { ref } from 'vue'
-import { getTeacherListInActivity } from '@/api/stdInfo'
+import { getTeacherListInActivity, selectTeacher } from '@/api/stdInfo'
 import { getTeacherList } from '@/api/teaInfo'
-import { getChooseCount } from '@/api/useraction'
+import { getActivityDetail, getChooseCount } from '@/api/useraction'
 import { useUserStore } from '@/store/user'
 
 import PLATFORM from '@/utils/platform'
@@ -49,11 +49,6 @@ const isProgressPage = ref(false) // 是否是进度页面
 
 // 导师数据
 const majorList = ref<Array<any>>([])
-// const majorList = ref<Array<any>>([
-//   { id: '1', name: '专业导师1', number: 15, selected: false },
-//   { id: '2', name: '专业导师2', number: 20, selected: false },
-//   // 更多数据...
-// ])
 
 const selectedMentors = ref<Array<any>>([]) // 已选导师列表
 const priority = ref([]) // 志愿优先级
@@ -67,17 +62,22 @@ const priorityOptions = ref([
 const isEight = ref<boolean>(false)
 // 志愿是否重复判断
 const duplicates = ref()
+// 当前活动的选择时间
+const currentActivityTime = ref({
+  stdChooseStartDate: new Date(),
+  stdChooseEndDate: new Date(),
+})
 
-function formatDate(date: Date) {
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  const day = String(now.getDate()).padStart(2, '0')
-  const hours = String(now.getHours()).padStart(2, '0')
-  const minutes = String(now.getMinutes()).padStart(2, '0')
-  const seconds = String(now.getSeconds()).padStart(2, '0')
-  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}Z`
-}
+// function formatDate(date: Date) {
+//   const now = new Date()
+//   const year = now.getFullYear()
+//   const month = String(now.getMonth() + 1).padStart(2, '0')
+//   const day = String(now.getDate()).padStart(2, '0')
+//   const hours = String(now.getHours()).padStart(2, '0')
+//   const minutes = String(now.getMinutes()).padStart(2, '0')
+//   const seconds = String(now.getSeconds()).padStart(2, '0')
+//   return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`
+// }
 
 // 计算滚动区域高度
 function calculateScrollHeight() {
@@ -174,7 +174,7 @@ function changePriority(e: any, index: number) {
 }
 
 // 提交志愿
-function handleSubmit() {
+async function handleSubmit() {
   // uni.showToast({ title: '志愿提交成功', icon: 'success' })
   // showSubmitCard.value = false
 
@@ -202,10 +202,55 @@ function handleSubmit() {
     })
     return
   }
-  const nowDate = formatDate(new Date())
+  const nowDate = new Date()
   console.log(nowDate)
+  const isIn = nowDate >= currentActivityTime.value.stdChooseStartDate
+    && nowDate <= currentActivityTime.value.stdChooseEndDate
+  console.log(isIn)
+  if (!isIn) {
+    uni.showToast({
+      title: '当前不在活动时间内',
+      icon: 'none',
+      duration: 2000,
+    })
+    return
+  }
+  // currentActivityTime.value.stdChooseStartDate = formatDate(currentActivityTime.value.stdChooseStartDate)
+  // currentActivityTime.value.stdChooseEndDate = new Date(currentActivityTime.value.stdChooseEndDate)
+  // console.log(currentActivityTime.value.stdChooseStartDate)
+  // console.log(currentActivityTime.value.stdChooseEndDate)
 
   console.log(123)
+  // 4. 提交志愿
+  const submitData = selectedMentors.value.map((mentor, index) => ({
+    activityId: store.userInfo.activityId,
+    studentId: store.userInfo.username,
+    teacherId: mentor.teacherId,
+    order: priority.value[index],
+    isChose: false,
+    createTime: Date.now(),
+  }))
+  console.log(submitData)
+  // 5. 提交数据
+  try {
+    for (const data of submitData) {
+      const response = await selectTeacher(data)
+      console.log('选择成功:', response)
+    }
+    uni.showToast({
+      title: '提交成功',
+      icon: 'success',
+      duration: 2000,
+    })
+  }
+  catch (error) {
+    console.error('选择失败:', error)
+    uni.showToast({
+      title: error.data.msg,
+      icon: 'none',
+      duration: 2000,
+    })
+  }
 }
 
 // 导航到我的志愿
@@ -250,7 +295,7 @@ onLoad(async () => {
   const requests = majorList.value.map(async (teacher) => {
     try {
       // const response =
-      const response: any = await getChooseCount(teacher.teacherId)
+      const response: any = await getChooseCount(teacher.teacherId, useUserStore().userInfo.activityId)
       console.log(response)
       return {
         ...teacher,
@@ -271,6 +316,13 @@ onLoad(async () => {
   })
   majorList.value = await Promise.all(requests)
   console.log(majorList.value)
+
+  // 查询活动详情
+  const res1: any = await getActivityDetail(useUserStore().userInfo.activityId)
+  // console.log(res1)
+  currentActivityTime.value.stdChooseEndDate = new Date(res1.stdChooseEndDate)
+  currentActivityTime.value.stdChooseStartDate = new Date(res1.stdChooseStartDate)
+  console.log(currentActivityTime.value)
 })
 </script>
 

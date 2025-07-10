@@ -9,6 +9,14 @@ interface IActivityList {
   description: string
   startTime: string
   endTime: string
+  firstChooseStartDate: string
+  firstChooseEndDate: string
+  secondChooseStartDate: string
+  secondChooseEndDate: string
+  thirdChooseStartDate: string
+  thirdChooseEndDate: string
+  stdChooseStartDate: string
+  stdChooseEndDate: string
 }
 
 interface IChooseCount {
@@ -29,8 +37,17 @@ export function getActivityList() {
 /**
  * 查询已选学生(通过老师id)
  */
-export function getChooseCount(teacherId: string) {
+export function getChooseCount(teacherId: string, activityId: string) {
   return http.get<IChooseCount>(`${localhost}/api/user/getChooseCount`, {
     teacherId,
+    activityId,
+  })
+}
+/**
+ * 查询某一活动详情
+ */
+export function getActivityDetail(id: string) {
+  return http.get<IActivityList>(`${localhost}/api/admin/getActivityDetail`, {
+    id,
   })
 }
