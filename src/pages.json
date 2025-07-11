@@ -49,11 +49,25 @@
       }
     },
     {
+      "path": "pages/myAmbition/index",
+      "type": "page",
+      "style": {
+        "navigationBarTitleText": "志愿查看"
+      }
+    },
+    {
       "path": "pages/s_choose/index",
       "type": "page",
       "layout": "default",
       "style": {
         "navigationBarTitleText": "选择页面"
+      }
+    },
+    {
+      "path": "pages/t_choose/index",
+      "type": "page",
+      "style": {
+        "navigationBarTitleText": "老师选择页面"
       }
     },
     {

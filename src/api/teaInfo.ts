@@ -11,10 +11,8 @@ interface ITeacherList {
 }
 
 /**
- * 查询老师信息
+ * 查询所有老师信息
  */
 export function getTeacherList() {
   return http.get<ITeacherList>(`${localhost}/api/teacher/detail`)
 }
-
-

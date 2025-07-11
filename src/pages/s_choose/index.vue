@@ -10,10 +10,10 @@
 
 <script lang="ts" setup>
 import { onLoad } from '@dcloudio/uni-app'
-import { ref } from 'vue'
+// import { ref } from 'vue'
 import { getTeacherListInActivity, selectTeacher } from '@/api/stdInfo'
 import { getTeacherList } from '@/api/teaInfo'
-import { getActivityDetail, getChooseCount } from '@/api/useraction'
+import { getActivityDetail, getChooseCount, getChooseCountWithActivityId } from '@/api/useraction'
 import { useUserStore } from '@/store/user'
 
 import PLATFORM from '@/utils/platform'
@@ -45,7 +45,7 @@ const store = useUserStore()
 const activeTab = ref('major') // 当前激活的选项卡
 const showSubmitCard = ref(false) // 是否显示提交卡片
 const scrollHeight = ref(0) // 滚动区域高度
-const isProgressPage = ref(false) // 是否是进度页面
+const isProgressPage = ref(true) // 是否是进度页面
 
 // 导师数据
 const majorList = ref<Array<any>>([])
@@ -158,7 +158,9 @@ function closeCard() {
 
 // 改变志愿优先级
 function changePriority(e: any, index: number) {
-  priority.value[index] = e.detail.value
+  priority.value[index] = Number(e.detail.value) + 1
+  console.log(typeof e.detail.value)
+
   console.log(priority.value)
   // 实时检查是否有重复
   duplicates.value = priority.value.filter((p, i) =>
@@ -215,20 +217,33 @@ async function handleSubmit() {
     })
     return
   }
-  // currentActivityTime.value.stdChooseStartDate = formatDate(currentActivityTime.value.stdChooseStartDate)
-  // currentActivityTime.value.stdChooseEndDate = new Date(currentActivityTime.value.stdChooseEndDate)
-  // console.log(currentActivityTime.value.stdChooseStartDate)
-  // console.log(currentActivityTime.value.stdChooseEndDate)
+  // // currentActivityTime.value.stdChooseStartDate = formatDate(currentActivityTime.value.stdChooseStartDate)
+  // // currentActivityTime.value.stdChooseEndDate = new Date(currentActivityTime.value.stdChooseEndDate)
+  // // console.log(currentActivityTime.value.stdChooseStartDate)
+  // // console.log(currentActivityTime.value.stdChooseEndDate)
 
-  console.log(123)
-  // 4. 提交志愿
+  // console.log(123)
+
+  // 4-1.检查是否提交过志愿
+  const isSubmit = await getChooseCountWithActivityId(store.userInfo.activityId, store.userInfo.username)
+  if (isSubmit.length > 0) {
+    uni.showToast({
+      title: '您已提交过志愿',
+      icon: 'none',
+      duration: 2000,
+    })
+    return
+  }
+  console.log(priority.value)
+
+  // 4-2. 提交志愿
   const submitData = selectedMentors.value.map((mentor, index) => ({
     activityId: store.userInfo.activityId,
     studentId: store.userInfo.username,
     teacherId: mentor.teacherId,
     order: priority.value[index],
     isChose: false,
-    createTime: Date.now(),
+    createTime: new Date().toString(),
   }))
   console.log(submitData)
   // 5. 提交数据
@@ -242,6 +257,7 @@ async function handleSubmit() {
       icon: 'success',
       duration: 2000,
     })
+    uni.navigateTo({ url: '/pages/myAmbition/index' })
   }
   catch (error) {
     console.error('选择失败:', error)
@@ -256,13 +272,18 @@ async function handleSubmit() {
 // 导航到我的志愿
 function navigateToMyChoices() {
   isProgressPage.value = true
-  uni.showToast({ title: '跳转到我的志愿页面', icon: 'none' })
+  // uni.showToast({ title: '跳转到我的志愿页面', icon: 'none' })
+  uni.navigateTo({ url: '/pages/myAmbition/index' })
 }
 
 // 导航到选择页面
 function navigateToProgress() {
   isProgressPage.value = false
-  uni.showToast({ title: '跳转到选择页面', icon: 'none' })
+  uni.showToast({
+    title: '在此页面中',
+    icon: 'none',
+    duration: 1000,
+  })
 }
 
 // 阻止触摸移动
@@ -477,7 +498,7 @@ onLoad(async () => {
             @change="(e) => changePriority(e, index)"
           >
             <view class="picker">
-              {{ priorityOptions[priority[index]]?.label || '未选择志愿顺序' }}
+              {{ priorityOptions[priority[index] - 1]?.label || '未选择志愿顺序' }}
             </view>
           </picker>
         </view>

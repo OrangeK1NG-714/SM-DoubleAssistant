@@ -26,6 +26,7 @@ interface IChooseCount {
   activityId: string
   order: string
   isChose: boolean
+  createTime: Date
 }
 /**
  * 获取活动列表
@@ -49,5 +50,24 @@ export function getChooseCount(teacherId: string, activityId: string) {
 export function getActivityDetail(id: string) {
   return http.get<IActivityList>(`${localhost}/api/admin/getActivityDetail`, {
     id,
+  })
+}
+/**
+ * 查询一个学生的选择情况(根据活动id+学生id)
+ */
+export function getChooseCountWithActivityId(activityId: string, studentId: string) {
+  return http.get<IChooseCount>(`${localhost}/api/user/getChooseDetail`, {
+    activityId,
+    studentId,
+  })
+}
+
+/**
+ * 查询用户信息(查询某一人信息)
+ */
+export function getUserDetail(username: string, role: string) {
+  return http.get(`${localhost}/api/user/detail`, {
+    username,
+    role,
   })
 }

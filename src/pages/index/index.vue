@@ -10,7 +10,7 @@ layout: 'default',
 
 <script lang="ts" setup>
 // 脚本部分保持不变
-import { getActivityList } from '@/api/useraction'
+import { getActivityList, getUserDetail } from '@/api/useraction'
 import { useUserStore } from '@/store/user'
 
 import PLATFORM from '@/utils/platform'
@@ -19,22 +19,18 @@ defineOptions({
   name: 'Home',
 })
 const useStore = useUserStore()
-onLoad(async () => {
-  const res = await getActivityList()
-  console.log(res)
-  // 分类活动
-  classifyActivities(res as any)
-})
-const nowDate = ref(new Date())
-console.log(nowDate)
+console.log(useStore.userInfo)
 
-const role = ref('student')
-const name = ref('张三')
+const nowDate = ref(new Date())
+// console.log(nowDate)
+
+const role = ref()
+const name = ref()
 const activeTab = ref('ongoing')
 const ongoingList = ref<Array<any>>([])
 const endedList = ref<Array<any>>([])
-console.log(ongoingList.value)
-console.log(endedList.value)
+// console.log(ongoingList.value)
+// console.log(endedList.value)
 
 // 分类活动函数
 function classifyActivities(activities: Array<any>) {
@@ -85,9 +81,16 @@ function enterSystem(id: string) {
   uni.showToast({ title: '进入系统', icon: 'none' })
   useStore.setActivityId(id)
   console.log(useStore.userInfo)
-  uni.navigateTo({
-    url: '/pages/s_choose/index',
-  })
+  if (useStore.userInfo?.role === 'student') {
+    uni.navigateTo({
+      url: '/pages/s_choose/index',
+    })
+  }
+  else if (useStore.userInfo?.role === 'teacher') {
+    uni.navigateTo({
+      url: '/pages/t_choose/index',
+    })
+  }
 }
 
 // 安全区域处理保持不变
@@ -110,6 +113,26 @@ safeAreaInsets = systemInfo.safeArea
 systemInfo = uni.getSystemInfoSync()
 safeAreaInsets = systemInfo.safeAreaInsets
 // #endif
+
+onLoad(async () => {
+  const res = await getActivityList()
+  console.log(res)
+
+  // 分类活动
+  classifyActivities(res as any)
+
+  // 从服务器查询用户信息
+  const userDetail: any = await getUserDetail(useStore.userInfo?.username, useStore.userInfo?.role)
+  console.log(userDetail)
+  // 新增赋值逻辑
+  role.value = useStore.userInfo?.role
+  if (role.value === 'student') {
+    name.value = userDetail.data.data.name
+  }
+  else if (role.value === 'teacher') {
+    name.value = userDetail.data.name
+  }
+})
 </script>
 
 <template>

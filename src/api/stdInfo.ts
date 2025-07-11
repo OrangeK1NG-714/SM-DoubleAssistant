@@ -18,7 +18,7 @@ interface ISelectTeacher {
   order: number
   isChose: boolean
   studentId: string
-  createTime: number
+  createTime: string
 }
 
 /**
