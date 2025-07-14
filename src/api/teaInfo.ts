@@ -16,3 +16,30 @@ interface ITeacherList {
 export function getTeacherList() {
   return http.get<ITeacherList>(`${localhost}/api/teacher/detail`)
 }
+
+interface ISelectStd {
+  studentId?: string
+  teacherId?: string
+  activityId?: string
+}
+/**
+ *  老师选学生POST
+ */
+export function selectStudent(data: ISelectStd) {
+  return http.post(`${localhost}/api/teacher/selectStudent`, data)
+}
+
+/**
+ *  老师取消选学生DELETE
+ */
+export function cancelSelect(data: ISelectStd) {
+  return http.delete(`${localhost}/api/teacher/cancelSelect`, data)
+}
+
+/**
+ *  查询老师选学生状况GET
+ */
+export function getSelectState(data: ISelectStd) {
+  return http.get(`${localhost}/api/teacher/getSelectList
+`, data)
+}

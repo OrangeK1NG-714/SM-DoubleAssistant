@@ -8,7 +8,7 @@
 </route>
 
 <script lang="ts" setup>
-import { ref } from 'vue'
+import { writeStdInfo } from '@/api/stdInfo'
 
 import PLATFORM from '@/utils/platform'
 
@@ -22,7 +22,7 @@ interface StudentForm {
   phone: string
   gpa: string
   direction: string
-  resumeName: string
+  // resumeName: string
 }
 
 defineOptions({
@@ -64,7 +64,7 @@ const formData = ref<StudentForm>({
   phone: '',
   gpa: '',
   direction: '',
-  resumeName: '',
+  // resumeName: '',
 })
 
 const showAgreement = ref(false)
@@ -84,7 +84,13 @@ function submitForm() {
 
   // 提交表单逻辑
   console.log('提交表单', formData.value)
-
+  writeStdInfo(formData.value).then((res) => {
+    uni.showToast({
+      title: '提交成功',
+      icon: 'success',
+    })
+    uni.navigateTo({ url: '/pages/index/index' })
+  })
   // 这里可以添加API调用
   // uni.request({
   //   url: 'your-api-endpoint',
@@ -128,9 +134,10 @@ function validateForm(): boolean {
   }
 
   // GPA验证
-  if ((Number(formData.value.gpa))) {
+  console.log(typeof formData.value.gpa)
+  if (!/^[1-4]\.\d$/.test(formData.value.gpa)) {
     uni.showToast({
-      title: '绩点必须为数字',
+      title: '绩点范围应为1.0-4.9，格式X.X（例如3.1）',
       icon: 'none',
     })
     return false
@@ -149,7 +156,7 @@ function getFieldName(field: keyof StudentForm): string {
     phone: '联系电话',
     gpa: '绩点',
     direction: '意向方向',
-    resumeName: '简历',
+    // resumeName: '简历',
   }
   return fieldNames[field]
 }
@@ -329,9 +336,9 @@ function viewFullAgreement() {
           <button class="mt-2 bg-gray-100 text-sm text-green-500" @tap="uploadResume">
             上传PDF简历
           </button>
-          <text v-if="formData.resumeName" class="ml-5 text-xs text-gray-500">
+          <!-- <text v-if="formData.resumeName" class="ml-5 text-xs text-gray-500">
             {{ formData.resumeName }}
-          </text>
+          </text> -->
         </view>
       </view>
 

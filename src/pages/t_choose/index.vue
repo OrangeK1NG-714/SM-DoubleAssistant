@@ -9,6 +9,8 @@
 </route>
 
 <script lang="ts" setup>
+import { getStudentMsg } from '@/api/stdInfo'
+import { cancelSelect, getSelectState, selectStudent } from '@/api/teaInfo'
 import { getChooseCount } from '@/api/useraction'
 import { useUserStore } from '@/store/user'
 
@@ -40,19 +42,28 @@ const answer = ref<any[]>([])
 const teacherName = ref('')
 const studentList = ref<any[]>([])
 const firstList = ref<any[]>([])
-const firstChoosedStudentList = ref<any[]>([])
+const firstChoseStudentList = ref<any[]>([])
 const secondList = ref<any[]>([])
-const secondChoosedStudentList = ref<any[]>([])
+const secondChoseStudentList = ref<any[]>([])
 const thirdList = ref<any[]>([])
-const thirdChoosedStudentList = ref<any[]>([])
+const thirdChoseStudentList = ref<any[]>([])
 const currentStudent = ref<any>({})
 const dialogVisible = ref(false)
 const formattedDate = ref('')
 const testDate = ref<any[]>([])
 
 onLoad(async () => {
-  const res = await getChooseCount(userStore.userInfo.username, userStore.userInfo.activityId)
+  const res: any = await getChooseCount(userStore.userInfo.username, userStore.userInfo.activityId)
   console.log(res)
+  categorizeByPriority(res)
+  // console.log(firstList.value)
+  // console.log(secondList.value)
+  // console.log(thirdList.value)
+  // console.log('---------------------')
+
+  // console.log(firstChoseStudentList.value)
+  // console.log(secondChoseStudentList.value)
+  // console.log(thirdChoseStudentList.value)
 
   //   teacherName.value = userStore.userInfo.username
   //   calculateScrollHeight()
@@ -237,14 +248,13 @@ function switchTab(e: any) {
   //   }
 }
 
-function viewDetail(e: any) {
-  const std_id = e.currentTarget.dataset.id
-  const student = studentList.value.find(item => item.studentId === std_id)
+function viewDetail(studentId: string) {
+  console.log(studentId)
 
-  if (student) {
-    dialogVisible.value = true
-    currentStudent.value = student.data
-  }
+  // if (student) {
+  //   dialogVisible.value = true
+  //   currentStudent.value = student.data
+  // }
 }
 
 function handleCloseDialog() {
@@ -255,42 +265,32 @@ function hideTeacherForm() {
   currentTeacher.value = ''
 }
 
-async function toggleSelect() {
-  //   const _id = e.currentTarget.dataset.id
-  //   const currentStatus = e.currentTarget.dataset.isChoose
-  //   const item = majorList.value.find(item => item._id === _id)
+async function toggleSelect(item: any) {
+  console.log(item)
 
-  //   if (item.mentor && item.mentor !== teacherName.value) {
-  //     uni.showToast({ title: '该学生已被其他导师选中', icon: 'none' })
-  //     return
-  //   }
-
-  //   try {
-  //     uni.showLoading({ title: '处理中...', mask: true })
-  //     const newMentorValue = currentStatus ? '' : teacherName.value
-
-  //     await cloudCallFunction('submitStudentTeacher', {
-  //       studentId: item.std_id,
-  //       mentor: newMentorValue,
+  // try {
+  //   if (item.isChose) {
+  //     const res = await cancelSelect({
+  //       studentId: item.studentId,
+  //       teacherId: userStore.userInfo.username,
+  //       activityId: item.activityId,
   //     })
-
-  //     await cloudCallFunction('toggleChooseStatus', {
-  //       _id,
-  //       newStatus: !currentStatus,
-  //       teacher: teacherName.value,
+  //     console.log(item.studentId, item.teacherId, item.activityId)
+  //     console.log(res)
+  //   }
+  //   else {
+  //     const res = await selectStudent({
+  //       studentId: item.studentId,
+  //       teacherId: item.teacherId,
+  //       activityId: item.activityId,
   //     })
-
-  //     updateLocalData(_id, !currentStatus)
-  //     categorizeByPriority()
-  //     uni.showToast({ title: '操作成功', icon: 'success' })
+  //     console.log(res)
   //   }
-  //   catch (err) {
-  //     console.error('操作失败:', err)
-  //     uni.showToast({ title: '操作失败', icon: 'none' })
-  //   }
-  //   finally {
-  //     uni.hideLoading()
-  //   }
+  //   item.isChose = !item.isChose
+  // }
+  // catch (error) {
+  //   console.log(error)
+  // }
 }
 
 function updateLocalData(_id: string, newStatus: boolean) {
@@ -356,30 +356,87 @@ function closeCard() {
 //   }
 // }
 
-function categorizeByPriority() {
+async function categorizeByPriority(res: any) {
   const firstListTemp: any[] = []
   const secondListTemp: any[] = []
   const thirdListTemp: any[] = []
 
-  majorList.value.forEach((item) => {
-    if (item.priority === 0) {
-      firstListTemp.push(item)
+  const request = res.map(async (item) => {
+    try {
+      const response = await getStudentMsg(item.studentId)
+      const chooseState: any = await getSelectState({
+        studentId: item.studentId,
+        // teacherId: item.teacherId,
+        activityId: item.activityId,
+      })
+      // console.log(chooseState)
+      // console.log(chooseState.length)
+      if (chooseState.length > 0) {
+        return {
+          ...item,
+          isChose: true,
+          finalTeacher: chooseState[0].teacherId,
+          data: response.data,
+        }
+      }
+      else {
+        return {
+          ...item,
+          isChose: false,
+          finalTeacher: '',
+          data: response.data,
+        }
+      }
     }
-    else if (item.priority === 1) {
-      secondListTemp.push(item)
-    }
-    else if (item.priority === 2) {
-      thirdListTemp.push(item)
+    catch (error) {
+      console.error('获取学生数据失败:', error)
+      return {
+        ...item,
+        data: {
+          name: '数据异常',
+          gender: '',
+          class: '',
+          grade: '',
+        },
+      }
     }
   })
 
-  firstChoosedStudentList.value = firstListTemp.filter(item => item.isChoose === true)
-  secondChoosedStudentList.value = secondListTemp.filter(item => item.isChoose === true)
-  thirdChoosedStudentList.value = thirdListTemp.filter(item => item.isChoose === true)
+  const processedData = await Promise.all(request)
+  console.log(processedData)
 
+  processedData.forEach((item) => {
+    // // 确保数据结构稳定
+    // const standardizedItem = {
+    //   ...item,
+    //   data: {
+    //     name: String(item.data.name || ''),
+    //     gender: ['男', '女'].includes(item.data.gender) ? item.data.gender : '未知',
+    //     class: item.data.class ? `班级 ${item.data.class}` : '未分班',
+    //     grade: item.data.grade ? `${item.data.grade}级` : '未设置',
+    //   },
+    // }
+    // console.log(processedData)
+
+    // 分配优先级
+    switch (item.order) {
+      case 1:
+        firstListTemp.push(item)
+        break
+      case 2:
+        secondListTemp.push(item)
+        break
+      case 3:
+        thirdListTemp.push(item)
+        break
+    }
+  })
+
+  // 响应式更新
   firstList.value = firstListTemp
   secondList.value = secondListTemp
   thirdList.value = thirdListTemp
+  console.log(firstListTemp, secondListTemp, thirdListTemp)
 }
 
 function navigateToMyChoices() {
@@ -417,14 +474,14 @@ function navigateToMyChoices() {
         </view>
       </view>
       <!-- 列表标题 -->
-      <view class="listTitles flex px-5">
+      <view class="listTitles flex">
         <view class="listTitle flex-1 py-5 text-center text-sm text-gray-500">
           姓名
         </view>
         <view class="listTitle flex-1 py-5 text-center text-sm text-gray-500">
           班级
         </view>
-        <view class="listTitle flex-1 py-5 text-center text-sm text-gray-500">
+        <view class="listTitle flex-1 py-5 pr-4 text-center text-sm text-gray-500">
           年级
         </view>
         <view class="listTitle1 flex-1 py-5 pr-5 text-center text-sm text-gray-500">
@@ -432,43 +489,38 @@ function navigateToMyChoices() {
         </view>
       </view>
     </view>
-
-    <student-dialog
-      id="student-dialog" :visible="dialogVisible" :info="currentStudent"
-      @close="handleCloseDialog"
-    />
-
+    <!-- <student-dialog id="student-dialog" :visible="dialogVisible" :info="currentStudent" @close="handleCloseDialog" /> -->
     <!-- 可滚动的内容区域 -->
-    <scroll-view scroll-y class="list-container" :style="{ height: `${scrollHeight}px` }">
+    <scroll-view scroll-y :style="{ height: `500px` }">
       <!-- 第一志愿列表 -->
       <template v-if="activeTab === 'first'">
         <view v-for="item in firstList" :key="item._id" class="list-item flex items-center justify-center">
           <view class="list-item1 flex-1 text-center">
-            {{ item.studentInfo.name }}
-            {{ item.studentInfo.gender === '男' ? '男' : '女' }}
+            {{ item.data?.name || '未设置名字' }}
+            {{ item.data.gender === '男' ? '男' : '女' }}
           </view>
           <view class="list-item2 flex-1 text-center">
-            {{ item.studentInfo.class || '未设置班级' }}
+            {{ item.data.classNum || '未设置班级' }}
           </view>
           <view class="list-item3 flex-1 text-center">
-            {{ item.studentInfo.grade || '未设置年级' }}
+            {{ item.data.grade || '未设置年级' }}
           </view>
           <view class="action-buttons flex-1.3 flex">
             <button
               class="btn-detail rounded bg-gray-100 px-4 py-1 text-xs text-gray-800" size="mini"
-              :data-id="item.std_id" @click="viewDetail"
+              :data-id="item.std_id" @click="viewDetail(item.data.studentId)"
             >
               查看
             </button>
             <button
               size="mini" class="btn-select ml-2 rounded px-4 py-1 text-xs" :class="{
-                'bg-green-500 text-white': item.isChoose,
-                'bg-gray-800 text-gray-500': item.mentor && item.mentor !== teacherName,
-                'bg-gray-100 text-gray-800': !item.isChoose && (!item.mentor || item.mentor === teacherName),
-              }" :data-id="item._id" :data-is-choose="item.isChoose"
-              :disabled="item.mentor && item.mentor !== teacherName" @click="toggleSelect()"
+                'bg-green-500 text-white': item.isChose,
+                'bg-gray-800 text-gray-500': item.finalTeacher && item.finalTeacher !== item.teacherId,
+                'bg-gray-100 text-gray-800': !item.isChose && (!item.finalTeacher || item.finalTeacher === item.teacherId),
+              }" :data-id="item._id" :data-is-choose="item.isChose"
+              :disabled="item.finalTeacher.length > 0 && item.finalTeacher !== item.teacherId" @click="toggleSelect(item)"
             >
-              {{ item.isChoose ? '已选' : (item.mentor && item.mentor !== teacherName) ? '被选走' : '未选' }}
+              {{ item.finalTeacher === item.teacherId ? '已选' : (item.finalTeacher.length > 0 && item.finalTeacher !== item.teacherId) ? '被选走' : '未选' }}
             </button>
           </view>
         </view>
@@ -481,14 +533,14 @@ function navigateToMyChoices() {
       <template v-if="activeTab === 'second'">
         <view v-for="item in secondList" :key="item.std_id" class="list-item flex items-center justify-center">
           <view class="list-item1 flex-1 text-center">
-            {{ item.studentInfo.name }}
-            {{ item.studentInfo.gender === '男' ? '男' : '女' }}
+            {{ item.data.name }}
+            {{ item.data.gender === '男' ? '男' : '女' }}
           </view>
           <view class="list-item2 flex-1 text-center">
-            {{ item.studentInfo.class || '未设置班级' }}
+            {{ item.data.classNum || '未设置班级' }}
           </view>
           <view class="list-item3 flex-1 text-center">
-            {{ item.studentInfo.grade || '未设置年级' }}
+            {{ item.data.grade || '未设置年级' }}
           </view>
           <view class="action-buttons flex-1.3 flex">
             <button
@@ -499,20 +551,17 @@ function navigateToMyChoices() {
             </button>
             <button
               size="mini" class="btn-select ml-2 rounded px-4 py-1 text-xs" :class="{
-                'bg-green-500 text-white': item.isChoose,
-                'bg-gray-800 text-gray-500': item.mentor && item.mentor !== teacherName,
-                'bg-gray-100 text-gray-800': !item.isChoose && (!item.mentor || item.mentor === teacherName),
-              }" :data-id="item._id" :data-is-choose="item.isChoose"
-              :disabled="item.mentor && item.mentor !== teacherName" @click="toggleSelect"
+                'bg-green-500 text-white': item.isChose,
+                'bg-gray-800 text-gray-500': item.finalTeacher && item.finalTeacher !== item.teacherId,
+                'bg-gray-100 text-gray-800': !item.isChose && (!item.finalTeacher || item.finalTeacher === item.teacherId),
+              }" :data-id="item._id" :data-is-choose="item.isChose"
+              :disabled="item.finalTeacher.length > 0 && item.finalTeacher !== item.teacherId" @click="toggleSelect(item)"
             >
-              {{ item.isChoose ? '已选' : (item.mentor && item.mentor !== teacherName) ? '被选走' : '未选' }}
+              {{ item.finalTeacher === item.teacherId ? '已选' : (item.finalTeacher.length > 0 && item.finalTeacher !== item.teacherId) ? '被选走' : '未选' }}
             </button>
           </view>
         </view>
-        <view
-          v-if="secondList.length === 0"
-          class="empty-tip h-15 flex items-center justify-center bg-gray-300"
-        >
+        <view v-if="secondList.length === 0" class="empty-tip h-15 flex items-center justify-center bg-gray-300">
           暂无第二志愿学生
         </view>
       </template>
@@ -521,14 +570,14 @@ function navigateToMyChoices() {
       <template v-if="activeTab === 'third'">
         <view v-for="item in thirdList" :key="item.std_id" class="list-item flex items-center justify-center">
           <view class="list-item1 flex-1 text-center">
-            {{ item.studentInfo.name }}
-            {{ item.studentInfo.gender === '男' ? '男' : '女' }}
+            {{ item.data.name }}
+            {{ item.data.gender === '男' ? '男' : '女' }}
           </view>
           <view class="list-item2 flex-1 text-center">
-            {{ item.studentInfo.class || '未设置班级' }}
+            {{ item.data.class || '未设置班级' }}
           </view>
           <view class="list-item3 flex-1 text-center">
-            {{ item.studentInfo.grade || '未设置年级' }}
+            {{ item.data.grade || '未设置年级' }}
           </view>
           <view class="action-buttons flex-1.3 flex">
             <button
@@ -539,13 +588,13 @@ function navigateToMyChoices() {
             </button>
             <button
               size="mini" class="btn-select ml-2 rounded px-4 py-1 text-xs" :class="{
-                'bg-green-500 text-white': item.isChoose,
-                'bg-gray-800 text-gray-500': item.mentor && item.mentor !== teacherName,
-                'bg-gray-100 text-gray-800': !item.isChoose && (!item.mentor || item.mentor === teacherName),
-              }" :data-id="item._id" :data-is-choose="item.isChoose"
-              :disabled="item.mentor && item.mentor !== teacherName" @click="toggleSelect"
+                'bg-green-500 text-white': item.isChose,
+                'bg-gray-800 text-gray-500': item.finalTeacher && item.finalTeacher !== item.teacherId,
+                'bg-gray-100 text-gray-800': !item.isChose && (!item.finalTeacher || item.finalTeacher === item.teacherId),
+              }" :data-id="item._id" :data-is-choose="item.isChose"
+              :disabled="item.finalTeacher.length > 0 && item.finalTeacher !== item.teacherId" @click="toggleSelect(item)"
             >
-              {{ item.isChoose ? '已选' : (item.mentor && item.mentor !== teacherName) ? '被选走' : '未选' }}
+              {{ item.finalTeacher === item.teacherId ? '已选' : (item.finalTeacher.length > 0 && item.finalTeacher !== item.teacherId) ? '被选走' : '未选' }}
             </button>
           </view>
         </view>
@@ -563,8 +612,8 @@ function navigateToMyChoices() {
     >
       <view class="form-container h-full w-full" @click.stop="hideTeacherForm">
         <image
-          class="teacher-avatar h-full w-full object-contain"
-          :src="`/assets/teachers/${currentTeacher}.png`" mode="aspectFit"
+          class="teacher-avatar h-full w-full object-contain" :src="`/assets/teachers/${currentTeacher}.png`"
+          mode="aspectFit"
         />
       </view>
     </view>
@@ -578,16 +627,13 @@ function navigateToMyChoices() {
         <text class="student-list-text flex-1 text-left text-xl font-bold">
           选择学生列表
         </text>
-        <button
-          class="close-btn m-0 h-15 w-15 bg-transparent p-0 text-2xl text-gray-500 leading-15"
-          @click="closeCard"
-        >
+        <button class="close-btn m-0 h-15 w-15 bg-transparent p-0 text-2xl text-gray-500 leading-15" @click="closeCard">
           ×
         </button>
       </view>
-      <view>第一志愿学生:{{ firstChoosedStudentList.length }}</view>
-      <view>第二志愿学生:{{ secondChoosedStudentList.length }}</view>
-      <view>第三志愿学生:{{ thirdChoosedStudentList.length }}</view>
+      <view>第一志愿学生:{{ firstChoseStudentList.length }}</view>
+      <view>第二志愿学生:{{ secondChoseStudentList.length }}</view>
+      <view>第三志愿学生:{{ thirdChoseStudentList.length }}</view>
     </view>
 
     <!-- 遮罩层 -->
@@ -603,11 +649,11 @@ function navigateToMyChoices() {
             已选学生总数：
           </text>
           <text
-            v-if="firstChoosedStudentList.length + secondChoosedStudentList.length + thirdChoosedStudentList.length > 0"
+            v-if="firstChoseStudentList.length + secondChoseStudentList.length + thirdChoseStudentList.length > 0"
             class="info-count"
           >
-            {{ firstChoosedStudentList.length + secondChoosedStudentList.length
-              + thirdChoosedStudentList.length }}名
+            {{ firstChoseStudentList.length + secondChoseStudentList.length
+              + thirdChoseStudentList.length }}名
           </text>
           <text v-else class="info-empty">
             暂无选择
@@ -622,8 +668,7 @@ function navigateToMyChoices() {
       <!-- 底部固定导航栏 -->
       <view class="bottom-nav fixed bottom-0 left-0 right-0 z-100 flex border-t border-gray-200 bg-white p-3">
         <button
-          class="nav-btn flex-1"
-          :class="isProgressPage ? 'bg-gray-100 text-gray-500' : 'bg-blue-500 text-white'"
+          class="nav-btn flex-1" :class="isProgressPage ? 'bg-gray-100 text-gray-500' : 'bg-blue-500 text-white'"
           @click="navigateToMyChoices"
         >
           我的学生

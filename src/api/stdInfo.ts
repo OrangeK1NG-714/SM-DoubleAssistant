@@ -36,3 +36,47 @@ export function getTeacherListInActivity(activityId: string) {
 export function selectTeacher(data: ISelectTeacher) {
   return http.post(`${localhost}/api/student/selectTeacher`, data)
 }
+
+interface IWriteStdInfo {
+  name: string
+  gender: string
+  studentId: string
+  grade: string
+  classNum: string
+  phone: string
+  gpa: string
+  direction: string
+  // resumeName: '',
+}
+/**
+ * 写入学生信息
+ */
+export function writeStdInfo(data: IWriteStdInfo) {
+  return http.post(`${localhost}/api/user/writeMsg`, data)
+}
+
+interface StudentData {
+  name: string
+  gender: string
+  studentId: string
+  grade: string
+  classNum: string
+  phone: string
+  gpa: string
+  direction: string
+}
+
+interface IStdInfo {
+  _id: string
+  studentId: string
+  mentor: string
+  data: StudentData
+}
+/**
+ * 查询学生信息
+ */
+export function getStudentMsg(studentId: string) {
+  return http.get<IStdInfo>(`${localhost}/api/student/getMsg`, {
+    studentId,
+  })
+}
