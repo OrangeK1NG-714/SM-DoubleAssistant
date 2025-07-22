@@ -21,6 +21,8 @@ interface ISelectStd {
   studentId?: string
   teacherId?: string
   activityId?: string
+  data?: object
+  order?: number
 }
 /**
  *  老师选学生POST

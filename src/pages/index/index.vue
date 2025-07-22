@@ -10,6 +10,7 @@ layout: 'default',
 
 <script lang="ts" setup>
 // 脚本部分保持不变
+import { isStudentInActivity } from '@/api/stdInfo'
 import { getActivityList, getUserDetail } from '@/api/useraction'
 import { useUserStore } from '@/store/user'
 
@@ -75,21 +76,28 @@ function myStudent() {
   uni.showToast({ title: '我的学生', icon: 'none' })
 }
 
-function enterSystem(id: string) {
-  console.log(123)
-  console.log(id)
+async function enterSystem(id: string) {
   uni.showToast({ title: '进入系统', icon: 'none' })
+  console.log(id)
+  console.log(useStore.userInfo.username)
+  const res = await isStudentInActivity(id, useStore.userInfo.username)
+  console.log(res)
+
   useStore.setActivityId(id)
-  console.log(useStore.userInfo)
-  if (useStore.userInfo?.role === 'student') {
-    uni.navigateTo({
-      url: '/pages/s_choose/index',
-    })
+  if (res.code === 200) {
+    if (useStore.userInfo?.role === 'student') {
+      uni.navigateTo({
+        url: '/pages/s_choose/index',
+      })
+    }
+    else if (useStore.userInfo?.role === 'teacher') {
+      uni.navigateTo({
+        url: '/pages/t_choose/index',
+      })
+    }
   }
-  else if (useStore.userInfo?.role === 'teacher') {
-    uni.navigateTo({
-      url: '/pages/t_choose/index',
-    })
+  else {
+    uni.showToast({ title: '您不在此活动中！(有疑问请联系管理员)', icon: 'none' })
   }
 }
 

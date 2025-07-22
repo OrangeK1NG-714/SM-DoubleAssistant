@@ -55,7 +55,11 @@ const testDate = ref<any[]>([])
 onLoad(async () => {
   const res: any = await getChooseCount(userStore.userInfo.username, userStore.userInfo.activityId)
   console.log(res)
-  categorizeByPriority(res)
+  await categorizeByPriority(res)
+  firstChoseStudentList.value = firstList.value.filter(item => item.finalTeacher === item.teacherId)
+  secondChoseStudentList.value = secondList.value.filter(item => item.finalTeacher === item.teacherId)
+  thirdChoseStudentList.value = thirdList.value.filter(item => item.finalTeacher === item.teacherId)
+
   // console.log(firstList.value)
   // console.log(secondList.value)
   // console.log(thirdList.value)
@@ -268,29 +272,34 @@ function hideTeacherForm() {
 async function toggleSelect(item: any) {
   console.log(item)
 
-  // try {
-  //   if (item.isChose) {
-  //     const res = await cancelSelect({
-  //       studentId: item.studentId,
-  //       teacherId: userStore.userInfo.username,
-  //       activityId: item.activityId,
-  //     })
-  //     console.log(item.studentId, item.teacherId, item.activityId)
-  //     console.log(res)
-  //   }
-  //   else {
-  //     const res = await selectStudent({
-  //       studentId: item.studentId,
-  //       teacherId: item.teacherId,
-  //       activityId: item.activityId,
-  //     })
-  //     console.log(res)
-  //   }
-  //   item.isChose = !item.isChose
-  // }
-  // catch (error) {
-  //   console.log(error)
-  // }
+  try {
+    if (item.isChose) {
+      const res = await cancelSelect({
+        studentId: item.studentId,
+        teacherId: userStore.userInfo.username,
+        activityId: item.activityId,
+      })
+      console.log(item.studentId, item.teacherId, item.activityId)
+      console.log(res)
+      item.isChose = false
+      item.finalTeacher = '' // 清空最终选择的老师
+    }
+    else {
+      const res = await selectStudent({
+        studentId: item.studentId,
+        teacherId: item.teacherId,
+        activityId: item.activityId,
+        data: item.data,
+        order: item.order,
+      })
+      console.log(res)
+      item.isChose = true
+      item.finalTeacher = userStore.userInfo.username // 设置为当前老师
+    }
+  }
+  catch (error) {
+    console.log(error)
+  }
 }
 
 function updateLocalData(_id: string, newStatus: boolean) {
@@ -317,44 +326,6 @@ function preventTouchMove() {
 function closeCard() {
   showSubmitCard.value = false
 }
-
-// async function handleSubmit() {
-//   if (selectedMentors.value.length !== 3) {
-//     uni.showToast({
-//       title: '请选择 3 位导师',
-//       icon: 'none',
-//       duration: 2000,
-//     })
-//     return
-//   }
-
-//   if (priority.value.length !== 3 || priority.value.some(p => p === undefined || p === null)) {
-//     uni.showToast({
-//       title: '请为所有导师设置志愿顺序',
-//       icon: 'none',
-//       duration: 2000,
-//     })
-//     return
-//   }
-
-//   const submitValue = selectedMentors.value.map((mentor, index) => ({
-//     ...mentor,
-//     priority: priority.value[index],
-//     teacher_name: teacherName.value,
-//   }))
-
-//   try {
-//     uni.showLoading({ title: '提交中...', mask: true })
-//     await cloudCallFunction('submitMentorChoices', { choices: submitValue })
-//     uni.hideLoading()
-//     uni.showToast({ title: '提交成功', icon: 'success' })
-//     uni.navigateTo({ url: '/pages/ambition/index' })
-//   }
-//   catch (err) {
-//     uni.hideLoading()
-//     uni.showToast({ title: '提交失败，请重试', icon: 'none' })
-//   }
-// }
 
 async function categorizeByPriority(res: any) {
   const firstListTemp: any[] = []
@@ -659,7 +630,7 @@ function navigateToMyChoices() {
             暂无选择
           </text>
         </view>
-        <view class="selected-mentors-bar-submit-btn-container mt-5">
+        <view class="selected-mentors-bar-submit-btn-container mt-1">
           <button size="mini" class="bg-gray-100 active:bg-gray-200" @click="toggleSubmitCard">
             {{ showSubmitCard ? '收起' : '展开人数详情' }}
           </button>

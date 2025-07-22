@@ -9,6 +9,11 @@ interface ITeacherListInActivity {
   teacherId: string
 }
 
+interface IStudentListInActivity {
+  _id: string
+  activityId: string
+  studentId: string
+}
 /**
  * 新增选老师的参数
  */
@@ -29,7 +34,15 @@ export function getTeacherListInActivity(activityId: string) {
     activityId,
   })
 }
-
+/**
+ * 查询某学生是否在活动中
+ */
+export function isStudentInActivity(activityId: string, studentId: string) {
+  return http.get<IStudentListInActivity>(`${localhost}/api/student/isInActivity`, {
+    activityId,
+    studentId,
+  })
+}
 /**
  * 新增学生选老师选项
  */
