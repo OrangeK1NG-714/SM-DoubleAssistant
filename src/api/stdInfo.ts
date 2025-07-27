@@ -93,3 +93,14 @@ export function getStudentMsg(studentId: string) {
     studentId,
   })
 }
+
+interface IUpdatePassword {
+  username: string
+  password: string
+}
+/**
+ *  修改学生密码
+ */
+export function updateStdPassword(data: IUpdatePassword) {
+  return http.post(`${localhost}/api/admin/resetPassword`, data)
+}

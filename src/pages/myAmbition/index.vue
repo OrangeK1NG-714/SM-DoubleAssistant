@@ -46,7 +46,17 @@ function navigateToMyChoices() {
 }
 
 onLoad(async () => {
+  console.log(userStore.userInfo)
+
   const res: any = await getChooseCountWithActivityId(userStore.userInfo.activityId, userStore.userInfo.username)
+  console.log(res)
+  if (res.length === 0) {
+    uni.showToast({
+      title: '您还未选择志愿',
+      icon: 'none',
+      duration: 2000, // 增加持续时间
+    })
+  }
   res.sort((a: any, b: any) => a.order - b.order)
   const teacherList: any = await getTeacherList()
   const teacherNameMap: Record<number, string> = {}

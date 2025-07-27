@@ -98,6 +98,13 @@ async function handleLogin() {
     console.log(error)
   }
 }
+
+// 重置密码
+async function handleResetPassword() {
+  uni.navigateTo({
+    url: '/pages/resetPassword/index',
+  })
+}
 // 测试 uni API 自动引入
 onLoad(() => {
   console.log()
@@ -145,11 +152,12 @@ console.log('index')
       <button size="default" class="w-40 bg-[#caf2ff] text-[#272727]" @click="handleLogin">
         登录
       </button>
-      <button size="default" class="w-40 bg-[#caf2ff] text-[#272727]" bind:tap="loginTest">
+      <button size="default" class="w-40 bg-[#caf2ff] text-[#272727]" @click="handleResetPassword">
         修改密码
       </button>
     </view>
   </view>
+
   <!-- <view class="mt-10">
       <image src="/static/logo.svg" alt="" class="mx-auto block h-28 w-28" />
     </view>

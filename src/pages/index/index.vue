@@ -10,6 +10,7 @@ layout: 'default',
 
 <script lang="ts" setup>
 // 脚本部分保持不变
+import { ref } from 'vue'
 import { isStudentInActivity } from '@/api/stdInfo'
 import { getActivityList, getUserDetail } from '@/api/useraction'
 import { useUserStore } from '@/store/user'
@@ -68,12 +69,23 @@ function switchTab(tab: string) {
   activeTab.value = tab
 }
 
-function viewDetail() {
-  uni.showToast({ title: '查看详情', icon: 'none' })
+const showDetailModal = ref(false)
+const detailDescription = ref('')
+function viewDetail(item: any) {
+  showDetailModal.value = true
+  detailDescription.value = item.description
 }
 
-function myStudent() {
+function myStudent(id: string) {
+  useStore.setActivityId(id)
   uni.showToast({ title: '我的学生', icon: 'none' })
+}
+
+function myVolunteer(id: string) {
+  useStore.setActivityId(id)
+  uni.navigateTo({
+    url: '/pages/myAmbition/index',
+  })
 }
 
 async function enterSystem(id: string) {
@@ -123,11 +135,26 @@ safeAreaInsets = systemInfo.safeAreaInsets
 // #endif
 
 onLoad(async () => {
-  const res = await getActivityList()
-  console.log(res)
+  const res: any = await getActivityList()
+  // console.log(res)
 
-  // 分类活动
-  classifyActivities(res as any)
+  // 先检查用户是否在每个活动中
+  const promises = res.map(async (item) => {
+    return await isStudentInActivity(item._id, useStore.userInfo?.username)
+  })
+  const asd = await Promise.all(promises)
+  console.log(asd)
+
+  // 过滤出用户参与的活动
+  const userActivities = res.filter((item, index) => {
+    return asd[index].code === 200
+  })
+  console.log('用户参与的活动:', userActivities)
+
+  // 再根据时间分类活动
+  classifyActivities(userActivities as any)
+  console.log('进行中的活动:', ongoingList.value)
+  console.log('已结束的活动:', endedList.value)
 
   // 从服务器查询用户信息
   const userDetail: any = await getUserDetail(useStore.userInfo?.username, useStore.userInfo?.role)
@@ -189,14 +216,21 @@ onLoad(async () => {
           <view class="mt-4 flex justify-end space-x-2">
             <button
               class="flex-1 border border-gray-300 rounded bg-white py-2 text-gray-700 active:bg-gray-100"
-              hover-class="bg-blue-50 text-blue-500 underline" @tap="viewDetail"
+              hover-class="bg-blue-50 text-blue-500 underline" @click="viewDetail(item)"
             >
               查看详情
             </button>
             <button
+              v-if="role === 'student'"
+              class="flex-1 border border-gray-300 rounded bg-white py-2 text-gray-700 active:bg-gray-100"
+              @tap="myVolunteer(item.id)"
+            >
+              我的志愿
+            </button>
+            <button
               v-if="role === 'teacher'"
               class="flex-1 border border-gray-300 rounded bg-white py-2 text-gray-700 active:bg-gray-100"
-              @tap="myStudent"
+              @tap="myStudent(item.id)"
             >
               我的学生
             </button>
@@ -220,6 +254,12 @@ onLoad(async () => {
               查看详情
             </button>
             <button
+              v-if="role === 'student'"
+              class="flex-1 border border-gray-300 rounded bg-white py-2 text-gray-700 opacity-50"
+            >
+              我的志愿
+            </button>
+            <button
               v-if="role === 'teacher'"
               class="flex-1 border border-gray-300 rounded bg-white py-2 text-gray-700 opacity-50"
             >
@@ -233,4 +273,29 @@ onLoad(async () => {
       </template>
     </view>
   </view>
+
+  <!-- 详情弹窗 -->
+
+  <wd-popup v-model="showDetailModal" custom-style="border-radius:32rpx;" close="showDetailModal=false">
+    <text class="custom-txt">
+      {{ detailDescription }}
+    </text>
+  </wd-popup>
 </template>
+
+<style lang="css" scoped>
+.custom-txt {
+  color: #333;
+  max-width: 600rpx;
+  max-height: 600rpx;
+  padding: 30rpx;
+  margin: 0 auto;
+  display: block;
+  font-size: 28rpx;
+  line-height: 1.6;
+  border-radius: 32rpx;
+  background-color: #fff;
+  overflow: auto;
+  text-align: left;
+}
+</style>

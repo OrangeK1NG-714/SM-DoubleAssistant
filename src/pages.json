@@ -63,6 +63,14 @@
       }
     },
     {
+      "path": "pages/resetPassword/index",
+      "type": "page",
+      "layout": "default",
+      "style": {
+        "navigationBarTitleText": "重置密码"
+      }
+    },
+    {
       "path": "pages/s_choose/index",
       "type": "page",
       "layout": "default",
