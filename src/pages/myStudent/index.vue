@@ -12,6 +12,8 @@ import { useUserStore } from '@/store/user'
 
 import PLATFORM from '@/utils/platform'
 
+const tabbar = ref('myStudent')// 底部导航栏
+
 const userStore = useUserStore()
 const scrollHeight = ref(0)
 const studentList = ref<Array<any>>([])
@@ -47,16 +49,22 @@ function viewDetail(studentId: string) {
   //   dialogVisible.value = true
   // }
 }
-
-function handleCloseDialog() {
-  dialogVisible.value = false
+function handleTabChange(e: any) {
+  if (e.value !== 'myStudent') {
+    uni.navigateTo({
+      url: `/pages/${e.value}/index`,
+    })
+  }
 }
+// function handleCloseDialog() {
+//   dialogVisible.value = false
+// }
 
-function navigateToProgress() {
-  uni.navigateTo({
-    url: '/pages/t_choose/index',
-  })
-}
+// function navigateToProgress() {
+//   uni.navigateTo({
+//     url: '/pages/t_choose/index',
+//   })
+// }
 
 onLoad(async () => {
   const res: any = await getSelectState({
@@ -126,7 +134,12 @@ onLoad(async () => {
     <!-- <student-dialog :visible="dialogVisible" :info="currentStudent" @close="handleCloseDialog" /> -->
 
     <!-- 底部固定导航栏 -->
-    <view class="bottom-nav fixed bottom-0 left-0 right-0 z-100 flex border-t border-gray-200 bg-white p-3">
+    <wd-tabbar v-model="tabbar" fixed @change="handleTabChange">
+      <wd-tabbar-item name="index" title="返回首页" icon="home" />
+      <wd-tabbar-item name="myStudent" title="我的学生" icon="cart" />
+      <wd-tabbar-item name="t_choose" title="查看选择情况" icon="user" />
+    </wd-tabbar>
+    <!-- <view class="bottom-nav fixed bottom-0 left-0 right-0 z-100 flex border-t border-gray-200 bg-white p-3">
       <button
         class="nav-btn flex-1" :class="isProgressPage ? 'bg-gray-100 text-gray-500' : 'bg-blue-500 text-white'"
       >
@@ -139,6 +152,6 @@ onLoad(async () => {
       >
         查看选择情况
       </button>
-    </view>
+    </view> -->
   </view>
 </template>

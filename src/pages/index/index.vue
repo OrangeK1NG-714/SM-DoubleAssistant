@@ -12,6 +12,7 @@ layout: 'default',
 // 脚本部分保持不变
 import { ref } from 'vue'
 import { isStudentInActivity } from '@/api/stdInfo'
+import { isTeacherInActivity } from '@/api/teaInfo'
 import { getActivityList, getUserDetail } from '@/api/useraction'
 import { useUserStore } from '@/store/user'
 
@@ -78,7 +79,9 @@ function viewDetail(item: any) {
 
 function myStudent(id: string) {
   useStore.setActivityId(id)
-  uni.showToast({ title: '我的学生', icon: 'none' })
+  uni.navigateTo({
+    url: '/pages/myStudent/index',
+  })
 }
 
 function myVolunteer(id: string) {
@@ -92,24 +95,31 @@ async function enterSystem(id: string) {
   uni.showToast({ title: '进入系统', icon: 'none' })
   console.log(id)
   console.log(useStore.userInfo.username)
-  const res = await isStudentInActivity(id, useStore.userInfo.username)
-  console.log(res)
-
-  useStore.setActivityId(id)
-  if (res.code === 200) {
-    if (useStore.userInfo?.role === 'student') {
+  if (useStore.userInfo.role === 'student') {
+    const res = await isStudentInActivity(id, useStore.userInfo.username)
+    console.log(res)
+    useStore.setActivityId(id)
+    if (res.code === 200) {
       uni.navigateTo({
         url: '/pages/s_choose/index',
       })
     }
-    else if (useStore.userInfo?.role === 'teacher') {
+    else {
+      uni.showToast({ title: '您不在此活动中！(有疑问请联系管理员)', icon: 'none' })
+    }
+  }
+  else {
+    const res = await isTeacherInActivity(id, useStore.userInfo.username)
+    console.log(res)
+    useStore.setActivityId(id)
+    if (res.code === 200) {
       uni.navigateTo({
         url: '/pages/t_choose/index',
       })
     }
-  }
-  else {
-    uni.showToast({ title: '您不在此活动中！(有疑问请联系管理员)', icon: 'none' })
+    else {
+      uni.showToast({ title: '您不在此活动中！(有疑问请联系管理员)', icon: 'none' })
+    }
   }
 }
 
@@ -138,23 +148,44 @@ onLoad(async () => {
   const res: any = await getActivityList()
   // console.log(res)
 
-  // 先检查用户是否在每个活动中
-  const promises = res.map(async (item) => {
-    return await isStudentInActivity(item._id, useStore.userInfo?.username)
-  })
-  const asd = await Promise.all(promises)
-  console.log(asd)
+  if (useStore.userInfo?.role === 'student') {
+    // 先检查用户是否在每个活动中
+    const promises = res.map(async (item) => {
+      return await isStudentInActivity(item._id, useStore.userInfo?.username)
+    })
+    const asd = await Promise.all(promises)
+    console.log(asd)
 
-  // 过滤出用户参与的活动
-  const userActivities = res.filter((item, index) => {
-    return asd[index].code === 200
-  })
-  console.log('用户参与的活动:', userActivities)
+    // 过滤出用户参与的活动
+    const userActivities = res.filter((item, index) => {
+      return asd[index].code === 200
+    })
+    console.log('用户参与的活动:', userActivities)
 
-  // 再根据时间分类活动
-  classifyActivities(userActivities as any)
-  console.log('进行中的活动:', ongoingList.value)
-  console.log('已结束的活动:', endedList.value)
+    // 再根据时间分类活动
+    classifyActivities(userActivities as any)
+    console.log('进行中的活动:', ongoingList.value)
+    console.log('已结束的活动:', endedList.value)
+  }
+  else {
+    // 先检查用户是否在每个活动中
+    const promises = res.map(async (item) => {
+      return await isTeacherInActivity(item._id, useStore.userInfo?.username)
+    })
+    const asd = await Promise.all(promises)
+    console.log(asd)
+
+    // 过滤出用户参与的活动
+    const userActivities = res.filter((item, index) => {
+      return asd[index].code === 200
+    })
+    console.log('用户参与的活动:', userActivities)
+
+    // 再根据时间分类活动
+    classifyActivities(userActivities as any)
+    console.log('进行中的活动:', ongoingList.value)
+    console.log('已结束的活动:', endedList.value)
+  }
 
   // 从服务器查询用户信息
   const userDetail: any = await getUserDetail(useStore.userInfo?.username, useStore.userInfo?.role)

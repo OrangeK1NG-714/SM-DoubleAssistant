@@ -47,8 +47,10 @@ const showSubmitCard = ref(false) // 是否显示提交卡片
 const scrollHeight = ref(0) // 滚动区域高度
 const isProgressPage = ref(true) // 是否是进度页面
 
-// 导师数据
-const majorList = ref<Array<any>>([])
+// 志愿列表
+const majorList = ref<any[]>([])
+const publicList = ref<any[]>([])
+const peopleList = ref<any[]>([])
 
 const selectedMentors = ref<Array<any>>([]) // 已选导师列表
 const priority = ref([]) // 志愿优先级
@@ -97,11 +99,40 @@ function viewDetail(id: string) {
 
 // 切换选择状态
 function toggleSelect(teacherId: string) {
-  const index = majorList.value.findIndex(item => item.teacherId === teacherId)
-  if (index === -1)
-    return
+  // 首先在所有列表中查找导师
+  let teacher: any = null
+  let listToUpdate: any[] = []
+  let index = -1
 
-  const teacher = majorList.value[index]
+  // 检查专业导师列表
+  index = majorList.value.findIndex(item => item.teacherId === teacherId)
+  if (index !== -1) {
+    teacher = majorList.value[index]
+    listToUpdate = majorList.value
+  }
+  // 检查公共导师列表
+  else {
+    index = publicList.value.findIndex(item => item.teacherId === teacherId)
+    if (index !== -1) {
+      teacher = publicList.value[index]
+      listToUpdate = publicList.value
+    }
+    // 检查校友导师列表
+    else {
+      index = peopleList.value.findIndex(item => item.teacherId === teacherId)
+      if (index !== -1) {
+        teacher = peopleList.value[index]
+        listToUpdate = peopleList.value
+      }
+    }
+  }
+
+  // 如果没有找到导师，直接返回
+  if (index === -1 || !teacher) {
+    console.warn(`未找到导师ID: ${teacherId}`)
+    return
+  }
+
   const wasSelected = teacher.selected
 
   // 仅在新增选择时检查数量限制
@@ -115,13 +146,23 @@ function toggleSelect(teacherId: string) {
   }
 
   // 原子化更新数据
-  const updatedList = [...majorList.value]
+  const updatedList = [...listToUpdate]
   updatedList[index] = {
     ...teacher,
     selected: !wasSelected,
     number: wasSelected ? teacher.number - 1 : teacher.number + 1,
   }
-  majorList.value = updatedList
+
+  // 更新对应的列表
+  if (listToUpdate === majorList.value) {
+    majorList.value = updatedList
+  }
+  else if (listToUpdate === publicList.value) {
+    publicList.value = updatedList
+  }
+  else if (listToUpdate === peopleList.value) {
+    peopleList.value = updatedList
+  }
 
   // 更新已选列表
   if (!wasSelected) {
@@ -138,12 +179,12 @@ function toggleSelect(teacherId: string) {
     const priorityIndex = priority.value.findIndex((_, i) =>
       selectedMentors.value[i]?.teacherId === teacherId,
     )
-    console.log(priorityIndex)
     if (priorityIndex !== -1) {
       priority.value.splice(priorityIndex, 1)
     }
   }
-  console.log(selectedMentors.value)
+
+  console.log('更新后的已选导师:', selectedMentors.value)
 }
 
 // 切换提交卡片显示状态
@@ -304,16 +345,17 @@ onLoad(async () => {
 
   const res: any = await getTeacherList()
   const teacherList: any = await getTeacherListInActivity(useUserStore().userInfo.activityId)
-  console.log(res.data)
-  console.log(teacherList)
+  // console.log(res.data)
+  // console.log(teacherList)
   // 提取teacherList中所有的teacherId
   const existingTeacherIds = teacherList.map(teacher => teacher.teacherId)
+  console.log(existingTeacherIds)
 
   // 过滤res.data，只保留存在于existingTeacherIds中的老师
-  majorList.value = res.data.filter(teacher =>
+  const filteredTeachers = res.data.filter(teacher =>
     existingTeacherIds.includes(teacher.teacherId),
   )
-  const requests = majorList.value.map(async (teacher) => {
+  const requests = filteredTeachers.map(async (teacher) => {
     try {
       // const response =
       const response: any = await getChooseCount(teacher.teacherId, useUserStore().userInfo.activityId)
@@ -335,8 +377,34 @@ onLoad(async () => {
       }
     }
   })
-  majorList.value = await Promise.all(requests)
-  console.log(majorList.value)
+  const processedTeachers = await Promise.all(requests)
+
+  // 根据teacherType分类数据
+  majorList.value = []
+  publicList.value = []
+  peopleList.value = []
+
+  processedTeachers.forEach((teacher) => {
+    switch (teacher.teacherType) {
+      case '0':
+        majorList.value.push(teacher)
+        break
+      case '1':
+        publicList.value.push(teacher)
+        break
+      case '2':
+        peopleList.value.push(teacher)
+        break
+      default:
+        console.warn(`未知的教师类型: ${teacher.teacherType}`, teacher)
+    }
+  })
+
+  console.log('分类后的教师列表:', {
+    majorList: majorList.value,
+    publicList: publicList.value,
+    peopleList: peopleList.value,
+  })
 
   // 查询活动详情
   const res1: any = await getActivityDetail(useUserStore().userInfo.activityId)
@@ -419,19 +487,92 @@ onLoad(async () => {
             </button>
           </view>
         </view>
+        <view v-if="majorList.length === 0" class="empty-state h-40 flex items-center justify-center bg-gray-100">
+          暂无专业导师数据
+        </view>
       </template>
 
       <!-- 公共导师 -->
       <template v-else-if="activeTab === 'public'">
-        <view class="public h-40 flex items-center justify-center bg-gray-100">
-          暂无老师
+        <view
+          v-for="item in publicList" :key="item.id"
+          class="list-item flex items-center justify-center border-b border-gray-100 py-3"
+        >
+          <view class="list-item1 flex flex-1 items-center justify-center text-center">
+            <image src="/static/icons/user.svg" class="mr-1 h-5 w-5" />
+            {{ item.name }}
+          </view>
+          <view
+            class="list-item2 flex-1 text-center" :class="{
+              'text-blue-500': item.number < 18,
+              'text-yellow-500': item.number >= 18 && item.number < 36,
+              'text-red-500': item.number >= 36,
+            }"
+          >
+            {{ item.number }}
+            <text v-if="item.number >= 18 && item.number < 36">
+              ⚠️
+            </text>
+            <text v-if="item.number >= 36">
+              ❗
+            </text>
+          </view>
+          <view class="action-buttons flex flex-1 justify-center space-x-2">
+            <button class="btn-detail rounded bg-gray-100 px-3 py-1 text-sm text-gray-700" @tap="viewDetail(item.id)">
+              查看
+            </button>
+            <button
+              class="btn-select rounded px-3 py-1 text-sm text-white"
+              :class="item.selected ? 'bg-gray-400' : 'bg-green-500'" @tap="toggleSelect(item.teacherId)"
+            >
+              {{ item.selected ? '已选' : '未选' }}
+            </button>
+          </view>
+        </view>
+        <view v-if="publicList.length === 0" class="empty-state h-40 flex items-center justify-center bg-gray-100">
+          暂无公共导师数据
         </view>
       </template>
 
       <!-- 校友导师 -->
       <template v-else>
-        <view class="alumni h-40 flex items-center justify-center bg-gray-100">
-          暂无老师
+        <view
+          v-for="item in peopleList" :key="item.id"
+          class="list-item flex items-center justify-center border-b border-gray-100 py-3"
+        >
+          <view class="list-item1 flex flex-1 items-center justify-center text-center">
+            <image src="/static/icons/user.svg" class="mr-1 h-5 w-5" />
+            {{ item.name }}
+          </view>
+          <view
+            class="list-item2 flex-1 text-center" :class="{
+              'text-blue-500': item.number < 18,
+              'text-yellow-500': item.number >= 18 && item.number < 36,
+              'text-red-500': item.number >= 36,
+            }"
+          >
+            {{ item.number }}
+            <text v-if="item.number >= 18 && item.number < 36">
+              ⚠️
+            </text>
+            <text v-if="item.number >= 36">
+              ❗
+            </text>
+          </view>
+          <view class="action-buttons flex flex-1 justify-center space-x-2">
+            <button class="btn-detail rounded bg-gray-100 px-3 py-1 text-sm text-gray-700" @tap="viewDetail(item.id)">
+              查看
+            </button>
+            <button
+              class="btn-select rounded px-3 py-1 text-sm text-white"
+              :class="item.selected ? 'bg-gray-400' : 'bg-green-500'" @tap="toggleSelect(item.teacherId)"
+            >
+              {{ item.selected ? '已选' : '未选' }}
+            </button>
+          </view>
+        </view>
+        <view v-if="peopleList.length === 0" class="empty-state h-40 flex items-center justify-center bg-gray-100">
+          暂无校友导师数据
         </view>
       </template>
     </scroll-view>

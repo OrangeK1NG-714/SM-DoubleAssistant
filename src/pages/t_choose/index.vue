@@ -1,7 +1,6 @@
 <!-- 使用 type="home" 属性设置首页，其他页面不需要设置，默认为page；推荐使用json5，更强大，且允许注释 -->
 <route lang="json5">
 {
-
   style: {
     navigationBarTitleText: '老师选择页面',
   },
@@ -19,38 +18,29 @@ import PLATFORM from '@/utils/platform'
 const userStore = useUserStore()
 console.log(userStore.userInfo)
 
+const tabbar = ref('t_choose')// 底部导航栏
+
 // 获取屏幕边界到安全区域距离
 const safeAreaInsets = ref<any>(null)
-const systemInfo = ref<any>(null)
 
 // 表单数据
 const activeTab = ref('first')
 const scrollHeight = ref(0)
 const majorList = ref<any[]>([])
-const publicList = ref<any[]>([])
+
 const showSubmitCard = ref(false)
 const currentTeacher = ref('')
-const selectedMentors = ref<any[]>([])
-const priorityOptions = [
-  { label: '一', value: 1 },
-  { label: '二', value: 2 },
-  { label: '三', value: 3 },
-]
+
 const priority = ref<number[]>([])
 const isProgressPage = ref(true)
-const answer = ref<any[]>([])
-const teacherName = ref('')
-const studentList = ref<any[]>([])
+
 const firstList = ref<any[]>([])
 const firstChoseStudentList = ref<any[]>([])
 const secondList = ref<any[]>([])
 const secondChoseStudentList = ref<any[]>([])
 const thirdList = ref<any[]>([])
 const thirdChoseStudentList = ref<any[]>([])
-const currentStudent = ref<any>({})
 const dialogVisible = ref(false)
-const formattedDate = ref('')
-const testDate = ref<any[]>([])
 
 onLoad(async () => {
   const res: any = await getChooseCount(userStore.userInfo.username, userStore.userInfo.activityId)
@@ -59,52 +49,6 @@ onLoad(async () => {
   firstChoseStudentList.value = firstList.value.filter(item => item.finalTeacher === item.teacherId)
   secondChoseStudentList.value = secondList.value.filter(item => item.finalTeacher === item.teacherId)
   thirdChoseStudentList.value = thirdList.value.filter(item => item.finalTeacher === item.teacherId)
-
-  // console.log(firstList.value)
-  // console.log(secondList.value)
-  // console.log(thirdList.value)
-  // console.log('---------------------')
-
-  // console.log(firstChoseStudentList.value)
-  // console.log(secondChoseStudentList.value)
-  // console.log(thirdChoseStudentList.value)
-
-  //   teacherName.value = userStore.userInfo.username
-  //   calculateScrollHeight()
-  //   //   await fetchTimeData()
-  //   //   await getChooseData(teacherName.value)
-
-  //   // 获取当前日期并格式化为 yyyy-MM-ddTHH:mm:ss
-  //   const currentDate = new Date()
-  //   formattedDate.value = formatDate(currentDate)
-
-  //   // 判断当前时间在哪个志愿区间
-  //   const currentTime = new Date(formattedDate.value).getTime()
-
-  //   if (testDate.value.length >= 3) {
-  //     // 转换所有时间格式为统一格式
-  //     const firstStart = new Date(testDate.value[0].begin.replace(' ', 'T')).getTime()
-  //     const firstEnd = new Date(testDate.value[0].end.replace(' ', 'T')).getTime()
-
-  //     const secondStart = new Date(testDate.value[1].begin.replace(' ', 'T')).getTime()
-  //     const secondEnd = new Date(testDate.value[1].end.replace(' ', 'T')).getTime()
-
-  //     const thirdStart = new Date(testDate.value[2].begin.replace(' ', 'T')).getTime()
-  //     const thirdEnd = new Date(testDate.value[2].end.replace(' ', 'T')).getTime()
-
-  //     if (currentTime >= firstStart && currentTime <= firstEnd) {
-  //       activeTab.value = 'first'
-  //     }
-  //     else if (currentTime >= secondStart && currentTime <= secondEnd) {
-  //       activeTab.value = 'second'
-  //     }
-  //     else if (currentTime >= thirdStart && currentTime <= thirdEnd) {
-  //       activeTab.value = 'third'
-  //     }
-  //     else {
-  //       uni.showToast({ title: '当前不在志愿选择时间段内', icon: 'none' })
-  //     }
-  //   }
 })
 
 function formatDate(date: Date): string {
@@ -410,10 +354,12 @@ async function categorizeByPriority(res: any) {
   console.log(firstListTemp, secondListTemp, thirdListTemp)
 }
 
-function navigateToMyChoices() {
-  uni.navigateTo({
-    url: '/pages/myStudent/index',
-  })
+function handleTabChange(e: any) {
+  if (e.value !== 't_choose') {
+    uni.navigateTo({
+      url: `/pages/${e.value}/index`,
+    })
+  }
 }
 </script>
 
@@ -489,9 +435,11 @@ function navigateToMyChoices() {
                 'bg-gray-800 text-gray-500': item.finalTeacher && item.finalTeacher !== item.teacherId,
                 'bg-gray-100 text-gray-800': !item.isChose && (!item.finalTeacher || item.finalTeacher === item.teacherId),
               }" :data-id="item._id" :data-is-choose="item.isChose"
-              :disabled="item.finalTeacher.length > 0 && item.finalTeacher !== item.teacherId" @click="toggleSelect(item)"
+              :disabled="item.finalTeacher.length > 0 && item.finalTeacher !== item.teacherId"
+              @click="toggleSelect(item)"
             >
-              {{ item.finalTeacher === item.teacherId ? '已选' : (item.finalTeacher.length > 0 && item.finalTeacher !== item.teacherId) ? '被选走' : '未选' }}
+              {{ item.finalTeacher === item.teacherId ? '已选' : (item.finalTeacher.length > 0 && item.finalTeacher
+                !== item.teacherId) ? '被选走' : '未选' }}
             </button>
           </view>
         </view>
@@ -526,9 +474,11 @@ function navigateToMyChoices() {
                 'bg-gray-800 text-gray-500': item.finalTeacher && item.finalTeacher !== item.teacherId,
                 'bg-gray-100 text-gray-800': !item.isChose && (!item.finalTeacher || item.finalTeacher === item.teacherId),
               }" :data-id="item._id" :data-is-choose="item.isChose"
-              :disabled="item.finalTeacher.length > 0 && item.finalTeacher !== item.teacherId" @click="toggleSelect(item)"
+              :disabled="item.finalTeacher.length > 0 && item.finalTeacher !== item.teacherId"
+              @click="toggleSelect(item)"
             >
-              {{ item.finalTeacher === item.teacherId ? '已选' : (item.finalTeacher.length > 0 && item.finalTeacher !== item.teacherId) ? '被选走' : '未选' }}
+              {{ item.finalTeacher === item.teacherId ? '已选' : (item.finalTeacher.length > 0 && item.finalTeacher
+                !== item.teacherId) ? '被选走' : '未选' }}
             </button>
           </view>
         </view>
@@ -563,9 +513,11 @@ function navigateToMyChoices() {
                 'bg-gray-800 text-gray-500': item.finalTeacher && item.finalTeacher !== item.teacherId,
                 'bg-gray-100 text-gray-800': !item.isChose && (!item.finalTeacher || item.finalTeacher === item.teacherId),
               }" :data-id="item._id" :data-is-choose="item.isChose"
-              :disabled="item.finalTeacher.length > 0 && item.finalTeacher !== item.teacherId" @click="toggleSelect(item)"
+              :disabled="item.finalTeacher.length > 0 && item.finalTeacher !== item.teacherId"
+              @click="toggleSelect(item)"
             >
-              {{ item.finalTeacher === item.teacherId ? '已选' : (item.finalTeacher.length > 0 && item.finalTeacher !== item.teacherId) ? '被选走' : '未选' }}
+              {{ item.finalTeacher === item.teacherId ? '已选' : (item.finalTeacher.length > 0 && item.finalTeacher
+                !== item.teacherId) ? '被选走' : '未选' }}
             </button>
           </view>
         </view>
@@ -637,7 +589,12 @@ function navigateToMyChoices() {
         </view>
       </view>
       <!-- 底部固定导航栏 -->
-      <view class="bottom-nav fixed bottom-0 left-0 right-0 z-100 flex border-t border-gray-200 bg-white p-3">
+      <wd-tabbar v-model="tabbar" fixed @change="handleTabChange">
+        <wd-tabbar-item name="index" title="返回首页" icon="home" />
+        <wd-tabbar-item name="myStudent" title="我的学生" icon="cart" />
+        <wd-tabbar-item name="t_choose" title="查看选择情况" icon="user" />
+      </wd-tabbar>
+      <!-- <view class="bottom-nav fixed bottom-0 left-0 right-0 z-100 flex border-t border-gray-200 bg-white p-3">
         <button
           class="nav-btn flex-1" :class="isProgressPage ? 'bg-gray-100 text-gray-500' : 'bg-blue-500 text-white'"
           @click="navigateToMyChoices"
@@ -650,7 +607,7 @@ function navigateToMyChoices() {
         >
           查看选择情况
         </button>
-      </view>
+      </view> -->
     </view>
   </view>
 </template>

@@ -45,3 +45,18 @@ export function getSelectState(data: ISelectStd) {
   return http.get(`${localhost}/api/teacher/getSelectList
 `, data)
 }
+
+interface ITeacherListInActivity {
+  _id: string
+  activityId: string
+  teacherId: string
+}
+/**
+ * 查询某老师是否在活动中
+ */
+export function isTeacherInActivity(activityId: string, teacherId: string) {
+  return http.get<ITeacherListInActivity>(`${localhost}/api/teacher/isInActivity`, {
+    activityId,
+    teacherId,
+  })
+}
