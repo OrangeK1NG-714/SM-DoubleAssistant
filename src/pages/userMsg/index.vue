@@ -9,7 +9,7 @@
 
 <script lang="ts" setup>
 import { writeStdInfo } from '@/api/stdInfo'
-
+import { useUserStore } from '@/store/user'
 import PLATFORM from '@/utils/platform'
 
 // 定义表单数据类型
@@ -22,7 +22,7 @@ interface StudentForm {
   phone: string
   gpa: string
   direction: string
-  // resumeName: string
+  resumeName: string
 }
 
 defineOptions({
@@ -64,7 +64,7 @@ const formData = ref<StudentForm>({
   phone: '',
   gpa: '',
   direction: '',
-  // resumeName: '',
+  resumeName: '',
 })
 
 const showAgreement = ref(false)
@@ -72,6 +72,56 @@ const showAgreement = ref(false)
 function uploadResume() {
   // 上传简历逻辑
   console.log('上传简历')
+  uni.chooseImage({
+    count: 1,
+    type: 'file',
+    extension: ['pdf'],
+    success(res) {
+      const tempFilePath = res.tempFilePaths[0]
+      const studentId = useUserStore().userInfo.username
+      const fileName = res.tempFiles[0].name
+      // 字段验证
+      if (!studentId) {
+        uni.showToast({ title: '学生ID获取失败', icon: 'error' })
+        console.error('学生ID为空')
+        return
+      }
+      if (!fileName) {
+        uni.showToast({ title: '文件名获取失败', icon: 'error' })
+        console.error('文件名为空')
+        return
+      }
+      if (!tempFilePath) {
+        uni.showToast({ title: '文件路径获取失败', icon: 'error' })
+        console.error('文件路径为空')
+        return
+      }
+
+      console.log('上传参数:', { fileName, studentId, filePath: tempFilePath })
+
+      uni.uploadFile({
+        url: 'http://127.0.0.1:7001/api/student/uploadResume',
+        filePath: tempFilePath,
+        name: 'file',
+        formData: {
+          fileName,
+          studentId,
+          filePath: tempFilePath,
+
+        },
+        success(res) {
+          console.log(res)
+          if (res.statusCode === 200) {
+            uni.showToast({
+              title: '上传成功',
+              icon: 'success',
+            })
+            formData.value.resumeName = fileName
+          }
+        },
+      })
+    },
+  })
 }
 
 function submitForm() {
@@ -156,7 +206,7 @@ function getFieldName(field: keyof StudentForm): string {
     phone: '联系电话',
     gpa: '绩点',
     direction: '意向方向',
-    // resumeName: '简历',
+    resumeName: '简历',
   }
   return fieldNames[field]
 }
