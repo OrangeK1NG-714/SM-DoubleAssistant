@@ -71,3 +71,13 @@ export function getUserDetail(username: string, role: string) {
     role,
   })
 }
+
+/**
+ * 查询老师在某活动中的最大学生选择数（复用这个路由）
+ */
+export function getMaxChooseNum(activityId: string, teacherId: string) {
+  return http.get<number>(`${localhost}/api/user/getMaxSelectNum`, {
+    activityId,
+    teacherId,
+  })
+}

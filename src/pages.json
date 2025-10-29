@@ -79,6 +79,13 @@
       }
     },
     {
+      "path": "pages/t_choose/123",
+      "type": "page",
+      "style": {
+        "navigationBarTitleText": "老师选择页面"
+      }
+    },
+    {
       "path": "pages/t_choose/index",
       "type": "page",
       "style": {

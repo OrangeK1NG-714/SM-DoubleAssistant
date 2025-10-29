@@ -40,14 +40,12 @@ async function getStudentData(name: string) {
 
 }
 
-function viewDetail(studentId: string) {
-  console.log(studentId)
-
-  // const student = studentList.value.find(item => item.studentId === studentId)
-  // if (student) {
-  //   currentStudent.value = student.data
-  //   dialogVisible.value = true
-  // }
+function viewDetail(item: any) {
+  console.log(item)
+  if (item.data) {
+    dialogVisible.value = true
+    currentStudent.value = item.data
+  }
 }
 function handleTabChange(e: any) {
   if (e.value !== 'myStudent') {
@@ -56,9 +54,9 @@ function handleTabChange(e: any) {
     })
   }
 }
-// function handleCloseDialog() {
-//   dialogVisible.value = false
-// }
+function handleCloseDialog() {
+  dialogVisible.value = false
+}
 
 // function navigateToProgress() {
 //   uni.navigateTo({
@@ -84,7 +82,7 @@ onLoad(async () => {
   <view class="bg-white">
     <view class="header">
       <!-- 列表标题 -->
-      <view class="flex px-5">
+      <view class="flex">
         <view class="flex-1 py-5 text-center text-base text-gray-500">
           姓名
         </view>
@@ -102,11 +100,12 @@ onLoad(async () => {
         </view>
       </view>
     </view>
-
+    <!-- 使用学生信息弹窗组件 -->
+    <StudentDialog :visible="dialogVisible" :info="currentStudent" @close="handleCloseDialog" />
     <scroll-view scroll-y class="list-container" :style="{ height: `500px` }">
       <view v-for="item in studentList" :key="item._id" class="flex items-center justify-center">
         <view class="flex-1 text-center">
-          {{ item.data.name }} {{ item.data.gender === '男' ? '男' : '女' }}
+          {{ item.data.name }}
         </view>
         <view class="flex-1 text-center">
           {{ item.data.classNum || '未设置班级' }}
@@ -118,12 +117,8 @@ onLoad(async () => {
           {{ item.data.direction || '未设置方向' }}
         </view>
         <view class="flex-1 text-center">
-          <button
-            class="rounded bg-gray-100 px-4 py-2 text-xs text-gray-800"
-            size="mini"
-            @click="viewDetail(item.studentId)"
-          >
-            查看详情
+          <button class="rounded bg-gray-100 px-4 py-2 text-xs text-gray-800" size="mini" @click="viewDetail(item)">
+            详情
           </button>
         </view>
       </view>
@@ -136,8 +131,8 @@ onLoad(async () => {
     <!-- 底部固定导航栏 -->
     <wd-tabbar v-model="tabbar" fixed @change="handleTabChange">
       <wd-tabbar-item name="index" title="返回首页" icon="home" />
-      <wd-tabbar-item name="myStudent" title="我的学生" icon="cart" />
-      <wd-tabbar-item name="t_choose" title="查看选择情况" icon="user" />
+      <wd-tabbar-item name="myStudent" title="我的学生" icon="user" />
+      <wd-tabbar-item name="t_choose" title="查看选择情况" icon="user-add" />
     </wd-tabbar>
     <!-- <view class="bottom-nav fixed bottom-0 left-0 right-0 z-100 flex border-t border-gray-200 bg-white p-3">
       <button

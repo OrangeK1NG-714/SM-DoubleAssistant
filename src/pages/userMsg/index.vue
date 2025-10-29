@@ -68,6 +68,7 @@ const formData = ref<StudentForm>({
 })
 
 const showAgreement = ref(false)
+const showDataUsageAgreement = ref(false)
 
 function uploadResume() {
   // 上传简历逻辑
@@ -132,6 +133,13 @@ function submitForm() {
     return
   }
 
+  // 显示数据使用协议弹窗
+  showDataUsageAgreement.value = true
+}
+
+function handleDataUsageAgree() {
+  showDataUsageAgreement.value = false
+
   // 提交表单逻辑
   console.log('提交表单', formData.value)
   writeStdInfo(formData.value).then((res) => {
@@ -141,15 +149,6 @@ function submitForm() {
     })
     uni.navigateTo({ url: '/pages/index/index' })
   })
-  // 这里可以添加API调用
-  // uni.request({
-  //   url: 'your-api-endpoint',
-  //   method: 'POST',
-  //   data: formData.value,
-  //   success: (res) => {
-  //     console.log('提交成功', res)
-  //   }
-  // })
 }
 
 function validateForm(): boolean {
@@ -425,6 +424,43 @@ function viewFullAgreement() {
         </button>
         <button class="w-48 bg-green-500 text-white" @tap="handleAgree">
           同意并继续
+        </button>
+      </view>
+    </view>
+  </view>
+
+  <!-- 数据使用同意弹窗 -->
+  <view v-if="showDataUsageAgreement" class="fixed inset-0 z-999 flex items-center justify-center bg-black bg-opacity-50">
+    <view class="w-4/5 rounded-lg bg-white p-6">
+      <view class="mb-5 text-center text-xl font-bold">
+        数据收集与使用授权
+      </view>
+      <view class="mb-7 text-sm leading-relaxed">
+        <view class="mb-3">
+          在收集和使用您的个人数据时，我们承诺：
+        </view>
+        <view class="mb-2">
+          1. 明确告知您数据的用途
+        </view>
+        <view class="mb-2">
+          2. 确保经过您的明确同意和授权
+        </view>
+        <view class="mb-2">
+          3. 仅在您同意的范围内进行合理使用
+        </view>
+        <view class="mb-2">
+          4. 在您注销账号后相应删除相关数据
+        </view>
+        <view class="mt-4">
+          数据包括但不限于：您提供的基本信息、联系方式、简历等。
+        </view>
+      </view>
+      <view class="flex justify-between">
+        <button class="w-48 bg-gray-100 text-gray-800" @tap="showDataUsageAgreement = false">
+          暂不授权
+        </button>
+        <button class="w-48 bg-green-500 text-white" @tap="handleDataUsageAgree">
+          同意并授权
         </button>
       </view>
     </view>

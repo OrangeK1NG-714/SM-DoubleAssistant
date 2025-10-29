@@ -16,6 +16,7 @@ const userInfoState: IUserInfoVo = {
   role: '',
   token: '',
   activityId: '',
+  maxSelectNum: 0,
 }
 // 带入活动id
 

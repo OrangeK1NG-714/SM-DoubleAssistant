@@ -10,7 +10,7 @@
 <script lang="ts" setup>
 import { getStudentMsg } from '@/api/stdInfo'
 import { cancelSelect, getSelectState, selectStudent } from '@/api/teaInfo'
-import { getChooseCount, getMaxChooseNum } from '@/api/useraction'
+import { getChooseCount } from '@/api/useraction'
 import { useUserStore } from '@/store/user'
 
 import PLATFORM from '@/utils/platform'
@@ -41,28 +41,33 @@ const secondChoseStudentList = ref<any[]>([])
 const thirdList = ref<any[]>([])
 const thirdChoseStudentList = ref<any[]>([])
 const dialogVisible = ref(false)
+const isLoading = ref(false)
 
-const currentStudent = ref<any>(null)
-// 已选择人数
-const selectedNum = ref(0)
+onLoad(() => {
+  isLoading.value = true
+  loadStudentData()
+})
 
-onLoad(async () => {
-  const res: any = await getChooseCount(userStore.userInfo.username, userStore.userInfo.activityId)
-  console.log(res, 'test')
-  await categorizeByPriority(res)
+async function loadStudentData() {
+  try {
+    const res: any = await getChooseCount(userStore.userInfo.username, userStore.userInfo.activityId)
+    console.log(res, 123)
+    await categorizeByPriority(res)
+    updataChosenStudentLists()
+  }
+  catch (e) {
+    console.log(e)
+    uni.showToast({ title: '数据加载失败', icon: 'none' })
+  }
+  finally {
+    isLoading.value = false
+  }
+}
+function updataChosenStudentLists() {
   firstChoseStudentList.value = firstList.value.filter(item => item.finalTeacher === item.teacherId)
   secondChoseStudentList.value = secondList.value.filter(item => item.finalTeacher === item.teacherId)
   thirdChoseStudentList.value = thirdList.value.filter(item => item.finalTeacher === item.teacherId)
-  // 计算已选择人数
-  selectedNum.value = firstChoseStudentList.value.length + secondChoseStudentList.value.length + thirdChoseStudentList.value.length
-  console.log(selectedNum.value, 'selectedNum')
-
-  const maxSelectedNum: any = await getMaxChooseNum(userStore.userInfo.activityId, userStore.userInfo.username)
-  console.log(maxSelectedNum, 'maxSelectedNum')
-  userStore.userInfo.maxSelectNum = maxSelectedNum.maxSelectNum
-  console.log(userStore.userInfo.maxSelectNum, 'maxSelectNum')
-})
-
+}
 function formatDate(date: Date): string {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -208,13 +213,13 @@ function switchTab(e: any) {
   //   }
 }
 
-function viewDetail(data: any) {
-  console.log(data)
+function viewDetail(studentId: string) {
+  console.log(studentId)
 
-  if (data) {
-    dialogVisible.value = true
-    currentStudent.value = data
-  }
+  // if (student) {
+  //   dialogVisible.value = true
+  //   currentStudent.value = student.data
+  // }
 }
 
 function handleCloseDialog() {
@@ -239,18 +244,8 @@ async function toggleSelect(item: any) {
       console.log(res)
       item.isChose = false
       item.finalTeacher = '' // 清空最终选择的老师
-      selectedNum.value--
     }
     else {
-      // 判断当前选择人数是否小于最大允许人数
-      if (selectedNum.value >= userStore.userInfo.maxSelectNum) {
-        uni.showToast({
-          title: `已达到最大选择人数限制(${userStore.userInfo.maxSelectNum}人)`,
-          icon: 'none',
-        })
-        return
-      }
-
       const res = await selectStudent({
         studentId: item.studentId,
         teacherId: item.teacherId,
@@ -261,13 +256,7 @@ async function toggleSelect(item: any) {
       console.log(res)
       item.isChose = true
       item.finalTeacher = userStore.userInfo.username // 设置为当前老师
-      selectedNum.value++
     }
-
-    // 重新计算三个志愿学生列表，确保UI显示的数量能够实时更新
-    firstChoseStudentList.value = firstList.value.filter(item => item.finalTeacher === item.teacherId)
-    secondChoseStudentList.value = secondList.value.filter(item => item.finalTeacher === item.teacherId)
-    thirdChoseStudentList.value = thirdList.value.filter(item => item.finalTeacher === item.teacherId)
   }
   catch (error) {
     console.log(error)
@@ -434,12 +423,7 @@ function handleTabChange(e: any) {
         </view>
       </view>
     </view>
-    <!-- 使用学生信息弹窗组件 -->
-    <StudentDialog
-      :visible="dialogVisible"
-      :info="currentStudent"
-      @close="handleCloseDialog"
-    />
+    <!-- <student-dialog id="student-dialog" :visible="dialogVisible" :info="currentStudent" @close="handleCloseDialog" /> -->
     <!-- 可滚动的内容区域 -->
     <scroll-view scroll-y :style="{ height: `500px` }">
       <!-- 第一志愿列表 -->
@@ -447,6 +431,7 @@ function handleTabChange(e: any) {
         <view v-for="item in firstList" :key="item._id" class="list-item flex items-center justify-center">
           <view class="list-item1 flex-1 text-center">
             {{ item.data?.name || '未设置名字' }}
+            {{ item.data.gender === '男' ? '男' : '女' }}
           </view>
           <view class="list-item2 flex-1 text-center">
             {{ item.data.classNum || '未设置班级' }}
@@ -454,10 +439,10 @@ function handleTabChange(e: any) {
           <view class="list-item3 flex-1 text-center">
             {{ item.data.grade || '未设置年级' }}
           </view>
-          <view class="action-buttons flex-2 flex">
+          <view class="action-buttons flex-1.3 flex">
             <button
               class="btn-detail rounded bg-gray-100 px-4 py-1 text-xs text-gray-800" size="mini"
-              :data-id="item.std_id" @click="viewDetail(item.data)"
+              :data-id="item.std_id" @click="viewDetail(item.data.studentId)"
             >
               查看
             </button>
@@ -485,6 +470,7 @@ function handleTabChange(e: any) {
         <view v-for="item in secondList" :key="item.std_id" class="list-item flex items-center justify-center">
           <view class="list-item1 flex-1 text-center">
             {{ item.data.name }}
+            {{ item.data.gender === '男' ? '男' : '女' }}
           </view>
           <view class="list-item2 flex-1 text-center">
             {{ item.data.classNum || '未设置班级' }}
@@ -492,10 +478,10 @@ function handleTabChange(e: any) {
           <view class="list-item3 flex-1 text-center">
             {{ item.data.grade || '未设置年级' }}
           </view>
-          <view class="action-buttons flex-2 flex">
+          <view class="action-buttons flex-1.3 flex">
             <button
-              class="btn-detail rounded bg-gray-100 px-2 py-1 text-xs text-gray-800" size="mini"
-              :data-id="item.std_id" @click="viewDetail(item.data)"
+              class="btn-detail rounded bg-gray-100 px-4 py-1 text-xs text-gray-800" size="mini"
+              :data-id="item.std_id" @click="viewDetail"
             >
               查看
             </button>
@@ -523,17 +509,18 @@ function handleTabChange(e: any) {
         <view v-for="item in thirdList" :key="item.std_id" class="list-item flex items-center justify-center">
           <view class="list-item1 flex-1 text-center">
             {{ item.data.name }}
+            {{ item.data.gender === '男' ? '男' : '女' }}
           </view>
           <view class="list-item2 flex-1 text-center">
-            {{ item.data.classNum || '未设置班级' }}
+            {{ item.data.class || '未设置班级' }}
           </view>
           <view class="list-item3 flex-1 text-center">
             {{ item.data.grade || '未设置年级' }}
           </view>
-          <view class="action-buttons flex-2 flex">
+          <view class="action-buttons flex-1.3 flex">
             <button
               class="btn-detail rounded bg-gray-100 px-4 py-1 text-xs text-gray-800" size="mini"
-              :data-id="item.std_id" @click="viewDetail(item.data)"
+              :data-id="item.std_id" @click="viewDetail"
             >
               查看
             </button>
@@ -605,7 +592,8 @@ function handleTabChange(e: any) {
             v-if="firstChoseStudentList.length + secondChoseStudentList.length + thirdChoseStudentList.length > 0"
             class="info-count"
           >
-            {{ selectedNum }}名
+            {{ firstChoseStudentList.length + secondChoseStudentList.length
+              + thirdChoseStudentList.length }}名
           </text>
           <text v-else class="info-empty">
             暂无选择
@@ -620,7 +608,7 @@ function handleTabChange(e: any) {
       <!-- 底部固定导航栏 -->
       <wd-tabbar v-model="tabbar" fixed @change="handleTabChange">
         <wd-tabbar-item name="index" title="返回首页" icon="home" />
-        <wd-tabbar-item name="myStudent" title="我的学生" icon="user" />
+        <wd-tabbar-item name="myStudent" title="我的学生" icon="cart" />
         <wd-tabbar-item name="t_choose" title="查看选择情况" icon="user-add" />
       </wd-tabbar>
       <!-- <view class="bottom-nav fixed bottom-0 left-0 right-0 z-100 flex border-t border-gray-200 bg-white p-3">
