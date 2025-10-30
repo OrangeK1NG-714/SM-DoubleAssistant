@@ -1,7 +1,8 @@
 import type { ICaptcha, IUpdateInfo, IUpdatePassword, IUserInfoVo, IUserLogin } from './types/login'
 import { http } from '@/utils/http'
-
-const localhost = 'http://127.0.0.1:7001'
+// 本地127.0.0.1:7001
+// 服务器47.118.26.28:7001
+const localhost = 'http://47.118.26.28:7001'
 /**
  * 登录表单
  */

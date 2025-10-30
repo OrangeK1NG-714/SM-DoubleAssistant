@@ -1,7 +1,7 @@
 // import type { IActivityList } from './types/userAction'
 import { http } from '@/utils/http'
 
-const localhost = 'http://127.0.0.1:7001'
+const localhost = 'http://47.118.26.28:7001'
 
 interface ITeacherListInActivity {
   _id: string
@@ -103,4 +103,14 @@ interface IUpdatePassword {
  */
 export function updateStdPassword(data: IUpdatePassword) {
   return http.post(`${localhost}/api/admin/resetPassword`, data)
+}
+
+/**
+ * 查询学生的最终志愿
+ */
+export function getStudentFinalChoice(studentId: string, activityId: string) {
+  return http.get(`${localhost}/api/admin/getFinalChoose`, {
+    studentId,
+    activityId,
+  })
 }

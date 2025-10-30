@@ -9,7 +9,7 @@
 
 <script lang="ts" setup>
 import { getStudentMsg } from '@/api/stdInfo'
-import { cancelSelect, getSelectState, selectStudent } from '@/api/teaInfo'
+import { cancelSelect, getMaxSelectNum, getSelectState, selectStudent, updateChoose } from '@/api/teaInfo'
 import { getChooseCount, getMaxChooseNum } from '@/api/useraction'
 import { useUserStore } from '@/store/user'
 
@@ -57,7 +57,7 @@ onLoad(async () => {
   selectedNum.value = firstChoseStudentList.value.length + secondChoseStudentList.value.length + thirdChoseStudentList.value.length
   console.log(selectedNum.value, 'selectedNum')
 
-  const maxSelectedNum: any = await getMaxChooseNum(userStore.userInfo.activityId, userStore.userInfo.username)
+  const maxSelectedNum: any = await getMaxSelectNum(userStore.userInfo.username, userStore.userInfo.activityId)
   console.log(maxSelectedNum, 'maxSelectedNum')
   userStore.userInfo.maxSelectNum = maxSelectedNum.maxSelectNum
   console.log(userStore.userInfo.maxSelectNum, 'maxSelectNum')
@@ -242,6 +242,8 @@ async function toggleSelect(item: any) {
       selectedNum.value--
     }
     else {
+      console.log(userStore.userInfo.maxSelectNum)
+
       // 判断当前选择人数是否小于最大允许人数
       if (selectedNum.value >= userStore.userInfo.maxSelectNum) {
         uni.showToast({
@@ -258,6 +260,7 @@ async function toggleSelect(item: any) {
         data: item.data,
         order: item.order,
       })
+
       console.log(res)
       item.isChose = true
       item.finalTeacher = userStore.userInfo.username // 设置为当前老师
@@ -272,6 +275,12 @@ async function toggleSelect(item: any) {
   catch (error) {
     console.log(error)
   }
+  const updateRes = await updateChoose({
+    studentId: item.studentId,
+    teacherId: item.teacherId,
+    activityId: item.activityId,
+  })
+  console.log(updateRes)
 }
 
 function updateLocalData(_id: string, newStatus: boolean) {

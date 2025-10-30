@@ -12,7 +12,7 @@
 import { onLoad } from '@dcloudio/uni-app'
 // import { ref } from 'vue'
 import { getTeacherListInActivity, selectTeacher } from '@/api/stdInfo'
-import { getTeacherList } from '@/api/teaInfo'
+import { getMaxSelectNum, getTeacherList } from '@/api/teaInfo'
 import { getActivityDetail, getChooseCount, getChooseCountWithActivityId } from '@/api/useraction'
 import { useUserStore } from '@/store/user'
 
@@ -69,17 +69,6 @@ const currentActivityTime = ref({
   stdChooseStartDate: new Date(),
   stdChooseEndDate: new Date(),
 })
-
-// function formatDate(date: Date) {
-//   const now = new Date()
-//   const year = now.getFullYear()
-//   const month = String(now.getMonth() + 1).padStart(2, '0')
-//   const day = String(now.getDate()).padStart(2, '0')
-//   const hours = String(now.getHours()).padStart(2, '0')
-//   const minutes = String(now.getMinutes()).padStart(2, '0')
-//   const seconds = String(now.getSeconds()).padStart(2, '0')
-//   return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`
-// }
 
 // 计算滚动区域高度
 function calculateScrollHeight() {
@@ -344,22 +333,50 @@ onLoad(async () => {
   }
 
   const res: any = await getTeacherList()
+
   const teacherList: any = await getTeacherListInActivity(useUserStore().userInfo.activityId)
-  // console.log(res.data)
-  // console.log(teacherList)
+  console.log(res.data)
+  console.log(teacherList)
   // 提取teacherList中所有的teacherId
   const existingTeacherIds = teacherList.map(teacher => teacher.teacherId)
   console.log(existingTeacherIds)
 
+  // 获取所有导师的最大选择学生数
+  res.data.map(async (item) => {
+    const result: any = await getMaxSelectNum(item.teacherId, useUserStore().userInfo.activityId)
+    // console.log(result)
+    if (result.maxSelectNum) {
+      item.maxSelectedNum = result.maxSelectNum
+    }
+    // console.log(item)
+
+    // item.maxSelectedNum = result.data.maxSelectNum
+  })
   // 过滤res.data，只保留存在于existingTeacherIds中的老师
   const filteredTeachers = res.data.filter(teacher =>
     existingTeacherIds.includes(teacher.teacherId),
   )
+  console.log(filteredTeachers)
+
   const requests = filteredTeachers.map(async (teacher) => {
     try {
       // const response =
       const response: any = await getChooseCount(teacher.teacherId, useUserStore().userInfo.activityId)
       console.log(response)
+      if (response.length > 0) {
+        let selectedNum = 0
+        for (let i = 0; i < response.length; i++) {
+          if (response[i].isChose) {
+            selectedNum++
+          }
+        }
+        console.log(selectedNum)
+        console.log(teacher)
+        // if (teacher.maxSelectedNum === selectedNum) {
+        //   return
+        // }
+        teacher.selectedNum = selectedNum
+      }
       return {
         ...teacher,
         number: response.length,
@@ -377,14 +394,32 @@ onLoad(async () => {
       }
     }
   })
+  // 等待所有异步请求完成
   const processedTeachers = await Promise.all(requests)
+  console.log('原始数据:', processedTeachers)
 
+  // 使用filter方法过滤掉已达到最大选择数的导师数据
+  // 过滤条件：保留那些maxSelectedNum和selectedNum不相等的项
+  const processedTeachersAfterFilter = processedTeachers.filter((item) => {
+    // 如果maxSelectedNum和selectedNum存在且相等，则过滤掉
+    if (item.maxSelectedNum !== undefined
+      && item.selectedNum !== undefined
+      && item.maxSelectedNum === item.selectedNum) {
+      console.log(`过滤掉导师：${item.name || item.teacherId} (已达到最大选择数: ${item.selectedNum}/${item.maxSelectedNum})`)
+      return false
+    }
+    // 其他情况保留
+    return true
+  })
+
+  console.log('过滤后的数据:', processedTeachersAfterFilter)
+  // 后续可以使用filteredTeachers替代processedTeachers进行分类和显示
   // 根据teacherType分类数据
   majorList.value = []
   publicList.value = []
   peopleList.value = []
 
-  processedTeachers.forEach((teacher) => {
+  processedTeachersAfterFilter.forEach((teacher) => {
     switch (teacher.teacherType) {
       case '0':
         majorList.value.push(teacher)

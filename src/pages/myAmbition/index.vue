@@ -7,6 +7,7 @@
 </route>
 
 <script lang="ts" setup>
+import { getStudentFinalChoice } from '@/api/stdInfo'
 import { getTeacherList } from '@/api/teaInfo'
 import { getChooseCountWithActivityId } from '@/api/useraction'
 import { useUserStore } from '@/store/user'
@@ -59,14 +60,24 @@ onLoad(async () => {
   }
   res.sort((a: any, b: any) => a.order - b.order)
   const teacherList: any = await getTeacherList()
+  console.log(teacherList)
+
   const teacherNameMap: Record<number, string> = {}
   teacherList.data.forEach((item) => {
     teacherNameMap[item.teacherId] = item.name
   })
+  console.log(teacherNameMap)
+  console.log(res)
+
+  const finalChoice: any = await getStudentFinalChoice(userStore.userInfo.username, userStore.userInfo.activityId)
+  console.log(finalChoice)
   sortedList.value = res.map(item => ({
     ...item,
     mentor_name: teacherNameMap[item.teacherId],
   }))
+  if (finalChoice.data) {
+    mentor.value = teacherNameMap[finalChoice.teacherId]
+  }
 })
 </script>
 

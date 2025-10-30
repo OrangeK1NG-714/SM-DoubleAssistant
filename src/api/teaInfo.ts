@@ -1,7 +1,7 @@
 // import type { IActivityList } from './types/userAction'
 import { http } from '@/utils/http'
 
-const localhost = 'http://127.0.0.1:7001'
+const localhost = 'http://47.118.26.28:7001'
 
 interface ITeacherList {
   _id: string
@@ -29,6 +29,12 @@ interface ISelectStd {
  */
 export function selectStudent(data: ISelectStd) {
   return http.post(`${localhost}/api/teacher/selectStudent`, data)
+}
+/**
+ *  老师选学生-即（修改学生选老师选项）
+ */
+export function updateChoose(data: ISelectStd) {
+  return http.put(`${localhost}/api/student/updateTeacher`, data)
 }
 
 /**
@@ -58,5 +64,14 @@ export function isTeacherInActivity(activityId: string, teacherId: string) {
   return http.get<ITeacherListInActivity>(`${localhost}/api/teacher/isInActivity`, {
     activityId,
     teacherId,
+  })
+}
+/**
+ * 查询老师的最大选择学生数
+ */
+export function getMaxSelectNum(teacherId: string, activityId: string) {
+  return http.get(`${localhost}/api/user/getMaxSelectNum`, {
+    teacherId,
+    activityId,
   })
 }

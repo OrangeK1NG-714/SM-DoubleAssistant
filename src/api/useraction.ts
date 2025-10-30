@@ -1,7 +1,7 @@
 // import type { IActivityList } from './types/userAction'
 import { http } from '@/utils/http'
 
-const localhost = 'http://127.0.0.1:7001'
+const localhost = 'http://47.118.26.28:7001'
 
 interface IActivityList {
   _id: string
@@ -76,7 +76,7 @@ export function getUserDetail(username: string, role: string) {
  * 查询老师在某活动中的最大学生选择数（复用这个路由）
  */
 export function getMaxChooseNum(activityId: string, teacherId: string) {
-  return http.get<number>(`${localhost}/api/user/getMaxSelectNum`, {
+  return http.get(`${localhost}/api/user/getMaxSelectNum`, {
     activityId,
     teacherId,
   })
