@@ -10,34 +10,14 @@
 
 <script lang="ts" setup>
 import { onLoad } from '@dcloudio/uni-app'
+import axios from 'axios'
 // import { ref } from 'vue'
 import { getTeacherListInActivity, selectTeacher } from '@/api/stdInfo'
 import { getMaxSelectNum, getTeacherList } from '@/api/teaInfo'
-import { getActivityDetail, getChooseCount, getChooseCountWithActivityId } from '@/api/useraction'
+import { getActivityDetail, getChooseCount, getChooseCountWithActivityId, getTeacherResume } from '@/api/useraction'
 import { useUserStore } from '@/store/user'
 
 import PLATFORM from '@/utils/platform'
-
-// 安全区域处理
-let safeAreaInsets
-let systemInfo
-
-// #ifdef MP-WEIXIN
-systemInfo = uni.getWindowInfo()
-safeAreaInsets = systemInfo.safeArea
-  ? {
-      top: systemInfo.safeArea.top,
-      right: systemInfo.windowWidth - systemInfo.safeArea.right,
-      bottom: systemInfo.windowHeight - systemInfo.safeArea.bottom,
-      left: systemInfo.safeArea.left,
-    }
-  : null
-// #endif
-
-// #ifndef MP-WEIXIN
-systemInfo = uni.getSystemInfoSync()
-safeAreaInsets = systemInfo.safeAreaInsets
-// #endif
 
 const store = useUserStore()
 
@@ -70,6 +50,9 @@ const currentActivityTime = ref({
   stdChooseEndDate: new Date(),
 })
 
+const imageUrl = ref('') // 存储图片URL
+const showImage = ref(false) // 控制图片显示状态
+
 // 计算滚动区域高度
 function calculateScrollHeight() {
   const systemInfo = uni.getSystemInfoSync()
@@ -82,8 +65,26 @@ function switchTab(tab: string) {
 }
 
 // 查看导师详情
-function viewDetail(id: string) {
-  uni.showToast({ title: `查看导师${id}详情`, icon: 'none' })
+async function viewDetail(data: any) {
+  console.log(data)
+  try {
+    const res: any = await getTeacherResume(data.teacherId)
+    console.log(res)
+
+    // 将blob转换为图片URL
+    if (res.data) {
+      const blob = new Blob([res.data], { type: res.headers['content-type'] || 'image/jpeg' })
+      imageUrl.value = URL.createObjectURL(blob)
+      showImage.value = true // 显示图片
+    }
+  }
+  catch (error) {
+    console.error('获取导师简历失败:', error)
+    uni.showToast({
+      title: '未获取到导师简历',
+      icon: 'none',
+    })
+  }
 }
 
 // 切换选择状态
@@ -333,7 +334,6 @@ onLoad(async () => {
   }
 
   const res: any = await getTeacherList()
-
   const teacherList: any = await getTeacherListInActivity(useUserStore().userInfo.activityId)
   console.log(res.data)
   console.log(teacherList)
@@ -451,7 +451,7 @@ onLoad(async () => {
 </script>
 
 <template>
-  <view class="bg-white px-4" :style="{ marginTop: `${safeAreaInsets?.top}px` }">
+  <view class="bg-white px-4">
     <!-- 头部选项卡 -->
     <view class="header">
       <view class="tabs flex border-b border-gray-200">
@@ -511,7 +511,7 @@ onLoad(async () => {
             </text>
           </view>
           <view class="action-buttons flex flex-1 justify-center space-x-2">
-            <button class="btn-detail rounded bg-gray-100 px-3 py-1 text-sm text-gray-700" @tap="viewDetail(item.id)">
+            <button class="btn-detail rounded bg-gray-100 px-3 py-1 text-sm text-gray-700" @tap="viewDetail(item)">
               查看
             </button>
             <button
@@ -553,7 +553,7 @@ onLoad(async () => {
             </text>
           </view>
           <view class="action-buttons flex flex-1 justify-center space-x-2">
-            <button class="btn-detail rounded bg-gray-100 px-3 py-1 text-sm text-gray-700" @tap="viewDetail(item.id)">
+            <button class="btn-detail rounded bg-gray-100 px-3 py-1 text-sm text-gray-700" @tap="viewDetail(item)">
               查看
             </button>
             <button
@@ -595,7 +595,7 @@ onLoad(async () => {
             </text>
           </view>
           <view class="action-buttons flex flex-1 justify-center space-x-2">
-            <button class="btn-detail rounded bg-gray-100 px-3 py-1 text-sm text-gray-700" @tap="viewDetail(item.id)">
+            <button class="btn-detail rounded bg-gray-100 px-3 py-1 text-sm text-gray-700" @tap="viewDetail(item)">
               查看
             </button>
             <button
@@ -614,7 +614,7 @@ onLoad(async () => {
 
     <!-- 已选导师信息栏 -->
     <view
-      class="selected-mentors-bar fixed bottom-18 left-0 right-0 z-50 h-10 flex items-center justify-between border-t border-gray-200 bg-gray-100 px-4"
+      class="selected-mentors-bar fixed bottom-16 left-0 right-0 z-50 h-10 flex items-center justify-between border-t border-gray-200 bg-gray-100 px-4"
     >
       <view class="selected-mentors-bar-mentors-info flex items-center">
         <text class="text-sm text-gray-600">
@@ -689,5 +689,14 @@ onLoad(async () => {
       v-if="showSubmitCard" class="mask fixed bottom-0 left-0 right-0 top-0 z-40 bg-black bg-opacity-50"
       @tap="toggleSubmitCard"
     />
+  </view>
+  <!-- 图片显示模态框 -->
+  <view v-if="showImage" class="image-modal fixed inset-0 z-60 flex flex-col items-center justify-center bg-black bg-opacity-80">
+    <view class="image-container max-h-[80vh] w-full">
+      <image :src="imageUrl" mode="widthFix" class="max-h-[80vh] w-full" />
+    </view>
+    <button class="close-image-btn mt-6 rounded-full bg-white/20 p-3 text-white" @tap="showImage = false">
+      关闭
+    </button>
   </view>
 </template>

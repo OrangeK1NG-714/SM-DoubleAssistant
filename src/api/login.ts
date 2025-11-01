@@ -2,7 +2,8 @@ import type { ICaptcha, IUpdateInfo, IUpdatePassword, IUserInfoVo, IUserLogin } 
 import { http } from '@/utils/http'
 // 本地127.0.0.1:7001
 // 服务器47.118.26.28:7001
-const localhost = 'http://47.118.26.28:7001'
+// const localhost = 'http://127.0.0.1:7001'
+const localhost = 'https://richardq.tech'
 /**
  * 登录表单
  */

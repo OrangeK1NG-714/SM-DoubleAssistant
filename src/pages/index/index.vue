@@ -108,7 +108,7 @@ async function enterSystem(id: string) {
       uni.showToast({ title: '您不在此活动中！(有疑问请联系管理员)', icon: 'none' })
     }
   }
-  else {
+  else if (useStore.userInfo.role === 'teacher') {
     const res = await isTeacherInActivity(id, useStore.userInfo.username)
     console.log(res)
     useStore.setActivityId(id)
@@ -146,7 +146,7 @@ safeAreaInsets = systemInfo.safeAreaInsets
 
 onLoad(async () => {
   const res: any = await getActivityList()
-  // console.log(res)
+  console.log(res)
 
   if (useStore.userInfo?.role === 'student') {
     // 先检查用户是否在每个活动中

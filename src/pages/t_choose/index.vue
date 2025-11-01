@@ -10,7 +10,7 @@
 <script lang="ts" setup>
 import { getStudentMsg } from '@/api/stdInfo'
 import { cancelSelect, getMaxSelectNum, getSelectState, selectStudent, updateChoose } from '@/api/teaInfo'
-import { getChooseCount, getMaxChooseNum } from '@/api/useraction'
+import { getActivityList, getChooseCount, getMaxChooseNum } from '@/api/useraction'
 import { useUserStore } from '@/store/user'
 
 import PLATFORM from '@/utils/platform'
@@ -27,6 +27,8 @@ const safeAreaInsets = ref<any>(null)
 const activeTab = ref('first')
 const scrollHeight = ref(0)
 const majorList = ref<any[]>([])
+const testDate = ref<any[]>([])
+const formattedDate = ref('')
 
 const showSubmitCard = ref(false)
 const currentTeacher = ref('')
@@ -45,6 +47,8 @@ const dialogVisible = ref(false)
 const currentStudent = ref<any>(null)
 // 已选择人数
 const selectedNum = ref(0)
+// 当前活动(获取时间信息)
+const thisActivity = ref<any>(null)
 
 onLoad(async () => {
   const res: any = await getChooseCount(userStore.userInfo.username, userStore.userInfo.activityId)
@@ -61,6 +65,14 @@ onLoad(async () => {
   console.log(maxSelectedNum, 'maxSelectedNum')
   userStore.userInfo.maxSelectNum = maxSelectedNum.maxSelectNum
   console.log(userStore.userInfo.maxSelectNum, 'maxSelectNum')
+
+  // 加载时间数据
+  const teacherActivityList: any = await getActivityList()
+  thisActivity.value = teacherActivityList.find(item => item._id === userStore.userInfo.activityId)
+  console.log(thisActivity.value, 'thisActivity')
+
+  formattedDate.value = formatDate(new Date())
+  console.log(formattedDate.value, 'formattedDate.value')
 })
 
 function formatDate(date: Date): string {
@@ -77,18 +89,15 @@ function formatDate(date: Date): string {
 
 // async function fetchTimeData() {
 //   try {
-//     const res = await cloudCallFunction('getTime')
-//     const result = res as {
-//       data: Array<{
-//         TeaChooseTime: any
-//         stdChooseTime: string
-//       }>
-//     }
-
-//     testDate.value = Object.values(result.data[0].TeaChooseTime)
+//     const res = await getChooseTime() // 假设有一个获取选择时间的API
+//     testDate.value = res.data || []
 //   }
 //   catch (error) {
-//     console.log(error)
+//     console.log('获取时间数据失败:', error)
+//     uni.showToast({
+//       title: '获取时间数据失败',
+//       icon: 'none',
+//     })
 //   }
 // }
 
@@ -174,38 +183,43 @@ function calculateScrollHeight() {
 
 function switchTab(e: any) {
   const targetTab = e.currentTarget.dataset.tab
-  //   console.log(targetTab)
-  activeTab.value = targetTab
-  //   const currentTime = new Date(formattedDate.value).getTime()
+  console.log(targetTab)
 
-  //   let isInTime = false
+  // 检查当前时间是否在允许选择的时间范围内
+  const currentTime = new Date().getTime()
+  let isInTime = false
 
-  //   if (targetTab === 'first' && testDate.value[0]) {
-  //     const start = new Date(testDate.value[0].begin.replace(' ', 'T')).getTime()
-  //     const end = new Date(testDate.value[0].end.replace(' ', 'T')).getTime()
-  //     isInTime = currentTime >= start && currentTime <= end
-  //   }
-  //   else if (targetTab === 'second' && testDate.value[1]) {
-  //     const start = new Date(testDate.value[1].begin.replace(' ', 'T')).getTime()
-  //     const end = new Date(testDate.value[1].end.replace(' ', 'T')).getTime()
-  //     isInTime = currentTime >= start && currentTime <= end
-  //   }
-  //   else if (targetTab === 'third' && testDate.value[2]) {
-  //     const start = new Date(testDate.value[2].begin.replace(' ', 'T')).getTime()
-  //     const end = new Date(testDate.value[2].end.replace(' ', 'T')).getTime()
-  //     isInTime = currentTime >= start && currentTime <= end
-  //   }
+  if (targetTab === 'first' && thisActivity.value) {
+    const start = new Date(thisActivity.value.firstChooseStartDate).getTime()
+    const end = new Date(thisActivity.value.firstChooseEndDate).getTime()
+    isInTime = currentTime >= start && currentTime <= end
+  }
+  else if (targetTab === 'second' && thisActivity.value) {
+    const start = new Date(thisActivity.value.secondChooseStartDate).getTime()
+    const end = new Date(thisActivity.value.secondChooseEndDate).getTime()
+    isInTime = currentTime >= start && currentTime <= end
+  }
+  else if (targetTab === 'third' && thisActivity.value) {
+    const start = new Date(thisActivity.value.thirdChooseStartDate).getTime()
+    const end = new Date(thisActivity.value.thirdChooseEndDate).getTime()
+    isInTime = currentTime >= start && currentTime <= end
+  }
 
-  //   if (isInTime) {
-  //     activeTab.value = targetTab
-  //   }
-  //   else {
-  //     uni.showToast({
-  //       title: `不在${targetTab === 'first' ? '第一' : targetTab === 'second' ? '第二' : '第三'}志愿选择时间内`,
-  //       icon: 'none',
-  //       duration: 2000,
-  //     })
-  //   }
+  // 如果没有活动数据，默认允许切换（防止系统出错时无法操作）
+  if (!thisActivity.value) {
+    isInTime = true
+  }
+
+  if (isInTime) {
+    activeTab.value = targetTab
+  }
+  else {
+    uni.showToast({
+      title: `不在${targetTab === 'first' ? '第一' : targetTab === 'second' ? '第二' : '第三'}志愿选择时间内`,
+      icon: 'none',
+      duration: 2000,
+    })
+  }
 }
 
 function viewDetail(data: any) {
@@ -227,6 +241,41 @@ function hideTeacherForm() {
 
 async function toggleSelect(item: any) {
   console.log(item)
+
+  // 检查当前是否在允许选择的时间范围内
+  const currentTime = new Date().getTime()
+  let isInTime = false
+  const targetTab = item.order === 1 ? 'first' : item.order === 2 ? 'second' : 'third'
+
+  if (targetTab === 'first' && thisActivity.value) {
+    const start = new Date(thisActivity.value.firstChooseStartDate).getTime()
+    const end = new Date(thisActivity.value.firstChooseEndDate).getTime()
+    isInTime = currentTime >= start && currentTime <= end
+  }
+  else if (targetTab === 'second' && thisActivity.value) {
+    const start = new Date(thisActivity.value.secondChooseStartDate).getTime()
+    const end = new Date(thisActivity.value.secondChooseEndDate).getTime()
+    isInTime = currentTime >= start && currentTime <= end
+  }
+  else if (targetTab === 'third' && thisActivity.value) {
+    const start = new Date(thisActivity.value.thirdChooseStartDate).getTime()
+    const end = new Date(thisActivity.value.thirdChooseEndDate).getTime()
+    isInTime = currentTime >= start && currentTime <= end
+  }
+
+  // 如果没有活动数据，默认允许操作（防止系统出错时无法操作）
+  if (!thisActivity.value) {
+    isInTime = true
+  }
+
+  if (!isInTime) {
+    uni.showToast({
+      title: `不在${targetTab === 'first' ? '第一' : targetTab === 'second' ? '第二' : '第三'}志愿选择时间内`,
+      icon: 'none',
+      duration: 2000,
+    })
+    return
+  }
 
   try {
     if (item.isChose) {
@@ -444,11 +493,7 @@ function handleTabChange(e: any) {
       </view>
     </view>
     <!-- 使用学生信息弹窗组件 -->
-    <StudentDialog
-      :visible="dialogVisible"
-      :info="currentStudent"
-      @close="handleCloseDialog"
-    />
+    <StudentDialog :visible="dialogVisible" :info="currentStudent" @close="handleCloseDialog" />
     <!-- 可滚动的内容区域 -->
     <scroll-view scroll-y :style="{ height: `500px` }">
       <!-- 第一志愿列表 -->

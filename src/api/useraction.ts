@@ -1,7 +1,9 @@
+import axios from 'axios'
 // import type { IActivityList } from './types/userAction'
 import { http } from '@/utils/http'
 
-const localhost = 'http://47.118.26.28:7001'
+// const localhost = 'http://127.0.0.1:7001'
+const localhost = 'https://richardq.tech'
 
 interface IActivityList {
   _id: string
@@ -79,5 +81,18 @@ export function getMaxChooseNum(activityId: string, teacherId: string) {
   return http.get(`${localhost}/api/user/getMaxSelectNum`, {
     activityId,
     teacherId,
+  })
+}
+
+/**
+ * 获取导师简历图片
+ */
+export function getTeacherResume(teacherId: string) {
+  // 修改后
+  return axios.get(`${localhost}/api/teacher/getTeacherResume`, {
+    params: {
+      teacherId,
+    },
+    responseType: 'blob', // 设置响应类型为blob
   })
 }

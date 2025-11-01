@@ -21,7 +21,7 @@ export function http<T>(options: CustomRequestOptions) {
       header: headers, // 注入携带 token 的 header
       dataType: 'json',
       // #ifndef MP-WEIXIN
-      responseType: 'json',
+      responseType: options.responseType || 'json',
       // #endif
       // 响应成功
       success(res) {

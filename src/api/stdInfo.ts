@@ -1,8 +1,8 @@
 // import type { IActivityList } from './types/userAction'
 import { http } from '@/utils/http'
 
-const localhost = 'http://47.118.26.28:7001'
-
+// const localhost = 'http://127.0.0.1:7001'
+const localhost = 'https://richardq.tech'
 interface ITeacherListInActivity {
   _id: string
   activityId: string

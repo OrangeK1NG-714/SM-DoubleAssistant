@@ -52,7 +52,7 @@ safeAreaInsets = systemInfo.safeAreaInsets
 // #endif
 
 const genderArray = ['男', '女']
-const directionArray = ['前端开发', '后端开发', '移动开发', 'UI设计', '产品经理', '其他']
+const directionArray = ['前端开发', '后端开发', '测试开发', 'UI设计', '产品经理', '游戏策划', '游戏开发', '视频剪辑', '视频编导', '其他']
 
 // 使用reactive创建表单对象
 const formData = ref<StudentForm>({
@@ -101,7 +101,7 @@ function uploadResume() {
       console.log('上传参数:', { fileName, studentId, filePath: tempFilePath })
 
       uni.uploadFile({
-        url: 'http://127.0.0.1:7001/api/student/uploadResume',
+        url: 'http://richardq.tech:7001/api/student/uploadResume',
         filePath: tempFilePath,
         name: 'file',
         formData: {
@@ -129,12 +129,12 @@ function submitForm() {
   console.log(formData.value)
 
   // 表单验证
-  if (!validateForm()) {
-    return
-  }
-
+  // if (!validateForm()) {
+  //   return
+  // }
+  showAgreement.value = true
   // 显示数据使用协议弹窗
-  showDataUsageAgreement.value = true
+  // showDataUsageAgreement.value = true
 }
 
 function handleDataUsageAgree() {
@@ -182,15 +182,15 @@ function validateForm(): boolean {
     return false
   }
 
-  // GPA验证
-  console.log(typeof formData.value.gpa)
-  if (!/^[1-4]\.\d$/.test(formData.value.gpa)) {
-    uni.showToast({
-      title: '绩点范围应为1.0-4.9，格式X.X（例如3.1）',
-      icon: 'none',
-    })
-    return false
-  }
+  // // GPA验证
+  // console.log(typeof formData.value.gpa)
+  // if (!/^[1-4]\.\d$/.test(formData.value.gpa)) {
+  //   uni.showToast({
+  //     title: '绩点范围应为1.0-4.9，格式X.X（例如3.1）',
+  //     icon: 'none',
+  //   })
+  //   return false
+  // }
 
   return true
 }
@@ -238,13 +238,22 @@ function handleDisagree() {
 function handleAgree() {
   showAgreement.value = false
   // 同意后的逻辑
+  // 提交表单逻辑
+  console.log('提交表单', formData.value)
+  writeStdInfo(formData.value).then((res) => {
+    uni.showToast({
+      title: '提交成功',
+      icon: 'success',
+    })
+    uni.navigateTo({ url: '/pages/index/index' })
+  })
 }
 
 function viewFullAgreement() {
   // 查看完整协议逻辑
-  uni.navigateTo({
-    url: '/pages/agreement/index',
-  })
+  // uni.navigateTo({
+  //   url: '/pages/agreement/index',
+  // })
 }
 </script>
 
@@ -283,8 +292,8 @@ function viewFullAgreement() {
             </text>性别
           </text>
           <picker
-            class="border rounded p-2 text-sm" style="border: 1px solid rgba(0, 0, 0, 0.3);"
-            mode="selector" :range="genderArray" @change="bindGenderChange"
+            class="border rounded p-2 text-sm" style="border: 1px solid rgba(0, 0, 0, 0.3);" mode="selector"
+            :range="genderArray" @change="bindGenderChange"
           >
             <view class="text-gray-800">
               {{ formData.gender || '请选择性别' }}
@@ -352,13 +361,13 @@ function viewFullAgreement() {
 
         <view class="mb-7">
           <text class="mb-2 block text-sm text-gray-600">
-            <text class="text-red-500">
-              *
-            </text>绩点（必填）
+            <text class="mb-2 block text-sm text-gray-600">
+              绩点（没有就不填）
+            </text>
           </text>
           <input
-            v-model="formData.gpa" class="border rounded p-2 text-sm"
-            style="border: 1px solid rgba(0, 0, 0, 0.3);" type="digit" placeholder="请输入绩点"
+            v-model="formData.gpa" class="border rounded p-2 text-sm" style="border: 1px solid rgba(0, 0, 0, 0.3);"
+            type="digit" placeholder="请输入绩点"
           >
         </view>
 
@@ -369,8 +378,8 @@ function viewFullAgreement() {
             </text>意向方向（必填）
           </text>
           <picker
-            class="border rounded p-2 text-sm" style="border: 1px solid rgba(0, 0, 0, 0.3);"
-            mode="selector" :range="directionArray" @change="bindDirectionChange"
+            class="border rounded p-2 text-sm" style="border: 1px solid rgba(0, 0, 0, 0.3);" mode="selector"
+            :range="directionArray" @change="bindDirectionChange"
           >
             <view class="text-gray-800">
               {{ formData.direction || '请选择意向方向' }}
@@ -405,18 +414,38 @@ function viewFullAgreement() {
         用户协议及隐私政策
       </view>
       <view class="mb-7 text-sm leading-relaxed">
-        我们将会收集您填写的<text class="text-red-500 font-bold">
-          个人信息（包括姓名、学号、联系方式等）
-        </text>，
-        用于<text class="text-red-500 font-bold">
-          招新审核及团队管理
-        </text>。
-        您可以在"我的"页面随时查看或删除您的信息。
-        请仔细阅读<text class="text-blue-500 underline" @tap="viewFullAgreement">
-          《用户协议》
-        </text>和<text class="text-blue-500 underline" @tap="viewFullAgreement">
-          《隐私政策》
-        </text>。
+        <text class="mb-2 block">
+          为保护您的隐私和数据安全，我们郑重承诺：
+        </text>
+
+        <text class="mb-2 block">
+          1. 我们将会收集您填写的<text class="text-red-500 font-bold">
+            个人信息（包括姓名、学号、联系方式等）
+          </text>，
+          仅用于<text class="text-red-500 font-bold">
+            招新审核及团队管理
+          </text>，并在您授权范围内合理使用。
+        </text>
+
+        <text class="mb-2 block">
+          2. 您可以在"我的"页面随时查看或删除您的信息，在您注销账号后，我们将相应删除您的相关数据。
+        </text>
+
+        <text class="mb-2 block">
+          3. 我们不会收集您的地理位置、通讯录等敏感信息，也不会要求您提供微信用户名或密码。
+        </text>
+
+        <text class="mb-2 block">
+          4. 我们承诺不会出售、转交、交易或以其他方式越权披露您的个人信息。
+        </text>
+
+        <text class="mb-4 block">
+          请仔细阅读<text class="text-blue-500 underline" @tap="viewFullAgreement">
+            《用户协议》
+          </text>和<text class="text-blue-500 underline" @tap="viewFullAgreement">
+            《隐私政策》
+          </text>以了解更多详细信息。
+        </text>
       </view>
       <view class="flex justify-between">
         <button class="w-48 bg-gray-100 text-gray-800" @tap="handleDisagree">
@@ -424,43 +453,6 @@ function viewFullAgreement() {
         </button>
         <button class="w-48 bg-green-500 text-white" @tap="handleAgree">
           同意并继续
-        </button>
-      </view>
-    </view>
-  </view>
-
-  <!-- 数据使用同意弹窗 -->
-  <view v-if="showDataUsageAgreement" class="fixed inset-0 z-999 flex items-center justify-center bg-black bg-opacity-50">
-    <view class="w-4/5 rounded-lg bg-white p-6">
-      <view class="mb-5 text-center text-xl font-bold">
-        数据收集与使用授权
-      </view>
-      <view class="mb-7 text-sm leading-relaxed">
-        <view class="mb-3">
-          在收集和使用您的个人数据时，我们承诺：
-        </view>
-        <view class="mb-2">
-          1. 明确告知您数据的用途
-        </view>
-        <view class="mb-2">
-          2. 确保经过您的明确同意和授权
-        </view>
-        <view class="mb-2">
-          3. 仅在您同意的范围内进行合理使用
-        </view>
-        <view class="mb-2">
-          4. 在您注销账号后相应删除相关数据
-        </view>
-        <view class="mt-4">
-          数据包括但不限于：您提供的基本信息、联系方式、简历等。
-        </view>
-      </view>
-      <view class="flex justify-between">
-        <button class="w-48 bg-gray-100 text-gray-800" @tap="showDataUsageAgreement = false">
-          暂不授权
-        </button>
-        <button class="w-48 bg-green-500 text-white" @tap="handleDataUsageAgree">
-          同意并授权
         </button>
       </view>
     </view>
