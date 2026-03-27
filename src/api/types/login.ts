@@ -10,13 +10,18 @@ export interface IUserInfoVo {
 }
 
 /**
- * 登录返回的信息
+ * 登录返回的信息（双token版本）
  */
 export interface IUserLogin {
   id: string
   username: string
-  token: string
   role: string
+  /** 访问令牌，短期有效 */
+  accessToken: string
+  /** 刷新令牌，长期有效 */
+  refreshToken: string
+  /** 访问令牌过期时间（秒） */
+  expiresIn?: number
 }
 
 /**

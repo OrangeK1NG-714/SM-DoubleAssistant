@@ -40,7 +40,7 @@ function reset() {
 </script>
 
 <template>
-  <view class="p-6 text-center">
+  <view class="ios-card" style="padding: 26rpx;">
     <view class="my-2">
       使用的是 laf 云后台
     </view>
@@ -61,9 +61,9 @@ function reset() {
     <!-- #endif -->
 
     <!-- http://localhost:9000/#/pages/index/request -->
-    <wd-button class="my-6" @click="run">
+    <button class="ios-btn ios-btn--primary my-6 w-full" @click="run">
       发送请求
-    </wd-button>
+    </button>
     <view class="h-16">
       <view v-if="loading">
         loading...
@@ -72,13 +72,13 @@ function reset() {
         <view class="text-xl">
           请求数据如下
         </view>
-        <view class="text-green leading-8">
+        <view class="leading-8" style="color: var(--ios-blue);">
           {{ JSON.stringify(data) }}
         </view>
       </block>
     </view>
-    <wd-button type="error" class="my-6" :disabled="!data" @click="reset">
+    <button class="ios-btn ios-btn--secondary my-6 w-full" :disabled="!data" @click="reset">
       重置数据
-    </wd-button>
+    </button>
   </view>
 </template>

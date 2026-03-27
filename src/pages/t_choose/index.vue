@@ -13,7 +13,7 @@ import { cancelSelect, getMaxSelectNum, getSelectState, selectStudent, updateCho
 import { getActivityList, getChooseCount, getMaxChooseNum } from '@/api/useraction'
 import { useUserStore } from '@/store/user'
 
-import PLATFORM from '@/utils/platform'
+const IOS_BLUE = '#0A84FF'
 
 const userStore = useUserStore()
 console.log(userStore.userInfo)
@@ -49,6 +49,11 @@ const currentStudent = ref<any>(null)
 const selectedNum = ref(0)
 // 当前活动(获取时间信息)
 const thisActivity = ref<any>(null)
+const navItems = [
+  { name: 'index', label: '首页' },
+  { name: 'myStudent', label: '我的学生' },
+  { name: 't_choose', label: '选择情况' },
+]
 
 onLoad(async () => {
   const res: any = await getChooseCount(userStore.userInfo.username, userStore.userInfo.activityId)
@@ -441,172 +446,169 @@ async function categorizeByPriority(res: any) {
 }
 
 function handleTabChange(e: any) {
-  if (e.value !== 't_choose') {
+  if (e !== 't_choose') {
     uni.navigateTo({
-      url: `/pages/${e.value}/index`,
+      url: `/pages/${e}/index`,
     })
   }
 }
 </script>
 
 <template>
-  <view class="bg-white px-4 pt-2" :style="{ marginTop: `${safeAreaInsets?.top}px` }">
-    <!-- 选项卡 -->
-    <view class="header">
-      <view class="tabs flex">
+  <view class="ios-page" :style="{ paddingTop: `${safeAreaInsets?.top || 0}px` }">
+    <view class="px-5 pt-6">
+      <view class="ios-title">
+        学生选择
+      </view>
+      <view class="ios-subtitle mt-2">
+        按志愿查看学生，并在允许时间内进行选择。
+      </view>
+
+      <view class="ios-seg mt-6">
         <view
-          class="flex-1 py-5 text-center tab"
-          :class="activeTab === 'first' ? 'text-green-500 border-b-4 border-green-500' : 'text-gray-500'"
-          data-tab="first" @click="switchTab"
+          class="ios-seg__item"
+          :class="{ 'ios-seg__item--active': activeTab === 'first' }"
+          :style="activeTab === 'first' ? { color: IOS_BLUE } : {}"
+          data-tab="first"
+          @click="switchTab"
         >
           第一志愿
         </view>
         <view
-          class="flex-1 py-5 text-center tab"
-          :class="activeTab === 'second' ? 'text-green-500 border-b-4 border-green-500' : 'text-gray-500'"
-          data-tab="second" @click="switchTab"
+          class="ios-seg__item"
+          :class="{ 'ios-seg__item--active': activeTab === 'second' }"
+          :style="activeTab === 'second' ? { color: IOS_BLUE } : {}"
+          data-tab="second"
+          @click="switchTab"
         >
           第二志愿
         </view>
         <view
-          class="flex-1 py-5 text-center tab"
-          :class="activeTab === 'third' ? 'text-green-500 border-b-4 border-green-500' : 'text-gray-500'"
-          data-tab="third" @click="switchTab"
+          class="ios-seg__item"
+          :class="{ 'ios-seg__item--active': activeTab === 'third' }"
+          :style="activeTab === 'third' ? { color: IOS_BLUE } : {}"
+          data-tab="third"
+          @click="switchTab"
         >
           第三志愿
-        </view>
-      </view>
-      <!-- 列表标题 -->
-      <view class="listTitles flex">
-        <view class="listTitle flex-1 py-5 text-center text-sm text-gray-500">
-          姓名
-        </view>
-        <view class="listTitle flex-1 py-5 text-center text-sm text-gray-500">
-          班级
-        </view>
-        <view class="listTitle flex-1 py-5 pr-4 text-center text-sm text-gray-500">
-          年级
-        </view>
-        <view class="listTitle1 flex-1 py-5 pr-5 text-center text-sm text-gray-500">
-          操作
         </view>
       </view>
     </view>
     <!-- 使用学生信息弹窗组件 -->
     <StudentDialog :visible="dialogVisible" :info="currentStudent" @close="handleCloseDialog" />
     <!-- 可滚动的内容区域 -->
-    <scroll-view scroll-y :style="{ height: `500px` }">
+    <scroll-view scroll-y class="w-90% px-5 pb-40 pt-5" :style="{ height: `500px` }">
       <!-- 第一志愿列表 -->
       <template v-if="activeTab === 'first'">
-        <view v-for="item in firstList" :key="item._id" class="list-item flex items-center justify-center">
-          <view class="list-item1 flex-1 text-center">
-            {{ item.data?.name || '未设置名字' }}
+        <view v-if="firstList.length === 0" class="py-10 text-center text-[26rpx] text-[#6B7280]">
+          暂无第一志愿学生
+        </view>
+        <view v-for="item in firstList" :key="item._id" class="ios-card mb-4" style="padding: 0;">
+          <view class="ios-cell">
+            <view class="flex-1">
+              <view class="text-[28rpx] text-[#111827] font-700">
+                {{ item.data?.name || '未设置名字' }}
+                <text class="ml-2 text-[24rpx] text-[#6B7280] font-500">
+                  {{ item.data?.gender || '' }}
+                </text>
+              </view>
+              <view class="mt-1 text-[24rpx] text-[#6B7280]">
+                {{ item.data?.classNum || '未设置班级' }} · {{ item.data?.grade || '未设置年级' }}
+              </view>
+            </view>
           </view>
-          <view class="list-item2 flex-1 text-center">
-            {{ item.data.classNum || '未设置班级' }}
-          </view>
-          <view class="list-item3 flex-1 text-center">
-            {{ item.data.grade || '未设置年级' }}
-          </view>
-          <view class="action-buttons flex-2 flex">
-            <button
-              class="btn-detail rounded bg-gray-100 px-4 py-1 text-xs text-gray-800" size="mini"
-              :data-id="item.std_id" @click="viewDetail(item.data)"
-            >
+          <view class="ios-divider" style="margin-left: 28rpx;" />
+          <view class="flex gap-3 px-4 pb-4 pt-3">
+            <button class="ios-btn ios-btn--secondary flex-1" style="padding: 18rpx 18rpx; font-size: 28rpx;" @click="viewDetail(item.data)">
               查看
             </button>
             <button
-              size="mini" class="btn-select ml-2 rounded px-4 py-1 text-xs" :class="{
-                'bg-green-500 text-white': item.isChose,
-                'bg-gray-800 text-gray-500': item.finalTeacher && item.finalTeacher !== item.teacherId,
-                'bg-gray-100 text-gray-800': !item.isChose && (!item.finalTeacher || item.finalTeacher === item.teacherId),
-              }" :data-id="item._id" :data-is-choose="item.isChose"
+              class="ios-btn flex-1"
+              :class="item.isChose ? 'ios-btn--primary' : (item.finalTeacher && item.finalTeacher !== item.teacherId ? 'ios-btn--secondary' : 'ios-btn--secondary')"
+              :style="item.isChose ? { backgroundColor: IOS_BLUE } : {}"
+              style="padding: 18rpx 18rpx; font-size: 28rpx;"
               :disabled="item.finalTeacher.length > 0 && item.finalTeacher !== item.teacherId"
               @click="toggleSelect(item)"
             >
-              {{ item.finalTeacher === item.teacherId ? '已选' : (item.finalTeacher.length > 0 && item.finalTeacher
-                !== item.teacherId) ? '被选走' : '未选' }}
+              {{ item.finalTeacher === item.teacherId ? '已选' : (item.finalTeacher.length > 0 && item.finalTeacher !== item.teacherId) ? '被选走' : '选择' }}
             </button>
           </view>
-        </view>
-        <view v-if="firstList.length === 0" class="empty-tip h-15 flex items-center justify-center bg-gray-300">
-          暂无第一志愿学生
         </view>
       </template>
 
       <!-- 第二志愿列表 -->
       <template v-if="activeTab === 'second'">
-        <view v-for="item in secondList" :key="item.std_id" class="list-item flex items-center justify-center">
-          <view class="list-item1 flex-1 text-center">
-            {{ item.data.name }}
+        <view v-if="secondList.length === 0" class="py-10 text-center text-[26rpx] text-[#6B7280]">
+          暂无第二志愿学生
+        </view>
+        <view v-for="item in secondList" :key="item.std_id" class="ios-card mb-4" style="padding: 0;">
+          <view class="ios-cell">
+            <view class="flex-1">
+              <view class="text-[28rpx] text-[#111827] font-700">
+                {{ item.data?.name || '未设置名字' }}
+                <text class="ml-2 text-[24rpx] text-[#6B7280] font-500">
+                  {{ item.data?.gender || '' }}
+                </text>
+              </view>
+              <view class="mt-1 text-[24rpx] text-[#6B7280]">
+                {{ item.data?.classNum || '未设置班级' }} · {{ item.data?.grade || '未设置年级' }}
+              </view>
+            </view>
           </view>
-          <view class="list-item2 flex-1 text-center">
-            {{ item.data.classNum || '未设置班级' }}
-          </view>
-          <view class="list-item3 flex-1 text-center">
-            {{ item.data.grade || '未设置年级' }}
-          </view>
-          <view class="action-buttons flex-2 flex">
-            <button
-              class="btn-detail rounded bg-gray-100 px-2 py-1 text-xs text-gray-800" size="mini"
-              :data-id="item.std_id" @click="viewDetail(item.data)"
-            >
+          <view class="ios-divider" style="margin-left: 28rpx;" />
+          <view class="flex gap-3 px-4 pb-4 pt-3">
+            <button class="ios-btn ios-btn--secondary flex-1" style="padding: 18rpx 18rpx; font-size: 28rpx;" @click="viewDetail(item.data)">
               查看
             </button>
             <button
-              size="mini" class="btn-select ml-2 rounded px-4 py-1 text-xs" :class="{
-                'bg-green-500 text-white': item.isChose,
-                'bg-gray-800 text-gray-500': item.finalTeacher && item.finalTeacher !== item.teacherId,
-                'bg-gray-100 text-gray-800': !item.isChose && (!item.finalTeacher || item.finalTeacher === item.teacherId),
-              }" :data-id="item._id" :data-is-choose="item.isChose"
+              class="ios-btn flex-1"
+              :class="item.isChose ? 'ios-btn--primary' : (item.finalTeacher && item.finalTeacher !== item.teacherId ? 'ios-btn--secondary' : 'ios-btn--secondary')"
+              :style="item.isChose ? { backgroundColor: IOS_BLUE } : {}"
+              style="padding: 18rpx 18rpx; font-size: 28rpx;"
               :disabled="item.finalTeacher.length > 0 && item.finalTeacher !== item.teacherId"
               @click="toggleSelect(item)"
             >
-              {{ item.finalTeacher === item.teacherId ? '已选' : (item.finalTeacher.length > 0 && item.finalTeacher
-                !== item.teacherId) ? '被选走' : '未选' }}
+              {{ item.finalTeacher === item.teacherId ? '已选' : (item.finalTeacher.length > 0 && item.finalTeacher !== item.teacherId) ? '被选走' : '选择' }}
             </button>
           </view>
-        </view>
-        <view v-if="secondList.length === 0" class="empty-tip h-15 flex items-center justify-center bg-gray-300">
-          暂无第二志愿学生
         </view>
       </template>
 
       <!-- 第三志愿列表 -->
       <template v-if="activeTab === 'third'">
-        <view v-for="item in thirdList" :key="item.std_id" class="list-item flex items-center justify-center">
-          <view class="list-item1 flex-1 text-center">
-            {{ item.data.name }}
+        <view v-if="thirdList.length === 0" class="py-10 text-center text-[26rpx] text-[#6B7280]">
+          暂无第三志愿学生
+        </view>
+        <view v-for="item in thirdList" :key="item.std_id" class="ios-card mb-4" style="padding: 0;">
+          <view class="ios-cell">
+            <view class="flex-1">
+              <view class="text-[28rpx] text-[#111827] font-700">
+                {{ item.data?.name || '未设置名字' }}
+                <text class="ml-2 text-[24rpx] text-[#6B7280] font-500">
+                  {{ item.data?.gender || '' }}
+                </text>
+              </view>
+              <view class="mt-1 text-[24rpx] text-[#6B7280]">
+                {{ item.data?.classNum || '未设置班级' }} · {{ item.data?.grade || '未设置年级' }}
+              </view>
+            </view>
           </view>
-          <view class="list-item2 flex-1 text-center">
-            {{ item.data.classNum || '未设置班级' }}
-          </view>
-          <view class="list-item3 flex-1 text-center">
-            {{ item.data.grade || '未设置年级' }}
-          </view>
-          <view class="action-buttons flex-2 flex">
-            <button
-              class="btn-detail rounded bg-gray-100 px-4 py-1 text-xs text-gray-800" size="mini"
-              :data-id="item.std_id" @click="viewDetail(item.data)"
-            >
+          <view class="ios-divider" style="margin-left: 28rpx;" />
+          <view class="flex gap-3 px-4 pb-4 pt-3">
+            <button class="ios-btn ios-btn--secondary flex-1" style="padding: 18rpx 18rpx; font-size: 28rpx;" @click="viewDetail(item.data)">
               查看
             </button>
             <button
-              size="mini" class="btn-select ml-2 rounded px-4 py-1 text-xs" :class="{
-                'bg-green-500 text-white': item.isChose,
-                'bg-gray-800 text-gray-500': item.finalTeacher && item.finalTeacher !== item.teacherId,
-                'bg-gray-100 text-gray-800': !item.isChose && (!item.finalTeacher || item.finalTeacher === item.teacherId),
-              }" :data-id="item._id" :data-is-choose="item.isChose"
+              class="ios-btn flex-1"
+              :class="item.isChose ? 'ios-btn--primary' : (item.finalTeacher && item.finalTeacher !== item.teacherId ? 'ios-btn--secondary' : 'ios-btn--secondary')"
+              :style="item.isChose ? { backgroundColor: IOS_BLUE } : {}"
+              style="padding: 18rpx 18rpx; font-size: 28rpx;"
               :disabled="item.finalTeacher.length > 0 && item.finalTeacher !== item.teacherId"
               @click="toggleSelect(item)"
             >
-              {{ item.finalTeacher === item.teacherId ? '已选' : (item.finalTeacher.length > 0 && item.finalTeacher
-                !== item.teacherId) ? '被选走' : '未选' }}
+              {{ item.finalTeacher === item.teacherId ? '已选' : (item.finalTeacher.length > 0 && item.finalTeacher !== item.teacherId) ? '被选走' : '选择' }}
             </button>
           </view>
-        </view>
-        <view v-if="thirdList.length === 0" class="empty-tip h-15 flex items-center justify-center bg-gray-300">
-          暂无第三志愿学生
         </view>
       </template>
     </scroll-view>
@@ -632,15 +634,38 @@ function handleTabChange(e: any) {
     >
       <view class="card-header mb-8 flex items-center justify-between">
         <text class="student-list-text flex-1 text-left text-xl font-bold">
-          选择学生列表
+          已选学生详情
         </text>
         <button class="close-btn m-0 h-15 w-15 bg-transparent p-0 text-2xl text-gray-500 leading-15" @click="closeCard">
           ×
         </button>
       </view>
-      <view>第一志愿学生:{{ firstChoseStudentList.length }}</view>
-      <view>第二志愿学生:{{ secondChoseStudentList.length }}</view>
-      <view>第三志愿学生:{{ thirdChoseStudentList.length }}</view>
+      <view class="ios-summary-grid">
+        <view class="ios-summary-item">
+          <view class="ios-summary-label">
+            第一志愿
+          </view>
+          <view class="ios-summary-value">
+            {{ firstChoseStudentList.length }}
+          </view>
+        </view>
+        <view class="ios-summary-item">
+          <view class="ios-summary-label">
+            第二志愿
+          </view>
+          <view class="ios-summary-value">
+            {{ secondChoseStudentList.length }}
+          </view>
+        </view>
+        <view class="ios-summary-item">
+          <view class="ios-summary-label">
+            第三志愿
+          </view>
+          <view class="ios-summary-value">
+            {{ thirdChoseStudentList.length }}
+          </view>
+        </view>
+      </view>
     </view>
 
     <!-- 遮罩层 -->
@@ -648,35 +673,39 @@ function handleTabChange(e: any) {
 
     <view class="footer">
       <!-- 已选导师信息栏 -->
-      <view
-        class="selected-mentors-bar fixed bottom-18 left-0 right-0 z-50 h-10 flex items-center justify-between border-t border-gray-200 bg-gray-100 px-4"
-      >
-        <view class="selected-mentors-bar-mentors-info flex items-center whitespace-nowrap">
-          <text class="info-text">
-            已选学生总数：
-          </text>
-          <text
-            v-if="firstChoseStudentList.length + secondChoseStudentList.length + thirdChoseStudentList.length > 0"
-            class="info-count"
-          >
-            {{ selectedNum }}名
-          </text>
-          <text v-else class="info-empty">
-            暂无选择
-          </text>
-        </view>
-        <view class="selected-mentors-bar-submit-btn-container mt-1">
-          <button size="mini" class="bg-gray-100 active:bg-gray-200" @click="toggleSubmitCard">
-            {{ showSubmitCard ? '收起' : '展开人数详情' }}
-          </button>
+      <view class="selected-mentors-bar fixed bottom-20 left-0 right-0 z-50 px-5">
+        <view class="ios-card ios-selected-card">
+          <view class="ios-selected-title-row">
+            <view class="text-[24rpx] text-[#6B7280]">
+              总计 已选学生
+            </view>
+            <view class="text-[32rpx] text-[#111827] font-700">
+              {{ selectedNum }} 名
+            </view>
+          </view>
+          <view class="ios-selected-breakdown">
+            <text>第一志愿 {{ firstChoseStudentList.length }}</text>
+            <text>第二志愿 {{ secondChoseStudentList.length }}</text>
+            <text>第三志愿 {{ thirdChoseStudentList.length }}</text>
+          </view>
+          <!-- <button class="ios-btn ios-btn--secondary mt-3 w-full" style="padding: 14rpx 18rpx; font-size: 26rpx;" @click="toggleSubmitCard">
+            {{ showSubmitCard ? '收起详情' : '展开详情' }}
+          </button> -->
         </view>
       </view>
       <!-- 底部固定导航栏 -->
-      <wd-tabbar v-model="tabbar" fixed @change="handleTabChange">
-        <wd-tabbar-item name="index" title="返回首页" icon="home" />
-        <wd-tabbar-item name="myStudent" title="我的学生" icon="user" />
-        <wd-tabbar-item name="t_choose" title="查看选择情况" icon="user-add" />
-      </wd-tabbar>
+      <view class="ios-bottom-nav fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white px-3 py-4">
+        <button
+          v-for="item in navItems"
+          :key="item.name"
+          class="ios-btn ios-bottom-nav-btn"
+          :class="tabbar === item.name ? 'ios-btn--primary' : 'ios-btn--secondary'"
+          :style="tabbar === item.name ? { backgroundColor: IOS_BLUE } : {}"
+          @click="() => { tabbar = item.name; handleTabChange(item.name) }"
+        >
+          {{ item.label }}
+        </button>
+      </view>
       <!-- <view class="bottom-nav fixed bottom-0 left-0 right-0 z-100 flex border-t border-gray-200 bg-white p-3">
         <button
           class="nav-btn flex-1" :class="isProgressPage ? 'bg-gray-100 text-gray-500' : 'bg-blue-500 text-white'"
@@ -694,3 +723,53 @@ function handleTabChange(e: any) {
     </view>
   </view>
 </template>
+
+<style scoped>
+.ios-selected-card {
+  padding: 18rpx 22rpx;
+}
+.ios-selected-title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.ios-selected-breakdown {
+  margin-top: 8rpx;
+  display: flex;
+  gap: 60rpx;
+  font-size: 23rpx;
+  color: #6b7280;
+}
+.ios-bottom-nav {
+  display: flex;
+  gap: 8rpx;
+}
+.ios-bottom-nav-btn {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  padding: 16rpx 10rpx;
+  font-size: 24rpx;
+}
+.ios-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12rpx;
+}
+.ios-summary-item {
+  border-radius: 16rpx;
+  background: rgba(17, 24, 39, 0.04);
+  padding: 14rpx 12rpx;
+  text-align: center;
+}
+.ios-summary-label {
+  font-size: 22rpx;
+  color: #6b7280;
+}
+.ios-summary-value {
+  margin-top: 4rpx;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #111827;
+}
+</style>

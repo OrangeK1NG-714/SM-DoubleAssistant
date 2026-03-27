@@ -2,7 +2,7 @@ import axios from 'axios'
 // import type { IActivityList } from './types/userAction'
 import { http } from '@/utils/http'
 
-// const localhost = 'http://127.0.0.1:7001'
+// const localhost = 'http://localhost:7001'
 const localhost = 'https://richardq.tech'
 
 interface IActivityList {
@@ -34,7 +34,7 @@ interface IChooseCount {
  * 获取活动列表
  */
 export function getActivityList() {
-  return http.get<IActivityList>(`${localhost}/api/admin/getActivityList`)
+  return http.get<IActivityList>(`${localhost}/api/admin/getActivityList`, undefined, undefined, { requireAuth: true })
 }
 
 /**
@@ -44,7 +44,7 @@ export function getChooseCount(teacherId: string, activityId: string) {
   return http.get<IChooseCount>(`${localhost}/api/user/getChooseCount`, {
     teacherId,
     activityId,
-  })
+  }, undefined, { requireAuth: true })
 }
 /**
  * 查询某一活动详情
@@ -52,7 +52,7 @@ export function getChooseCount(teacherId: string, activityId: string) {
 export function getActivityDetail(id: string) {
   return http.get<IActivityList>(`${localhost}/api/admin/getActivityDetail`, {
     id,
-  })
+  }, undefined, { requireAuth: true })
 }
 /**
  * 查询一个学生的选择情况(根据活动id+学生id)
@@ -61,7 +61,7 @@ export function getChooseCountWithActivityId(activityId: string, studentId: stri
   return http.get<IChooseCount>(`${localhost}/api/user/getChooseDetail`, {
     activityId,
     studentId,
-  })
+  }, undefined, { requireAuth: true })
 }
 
 /**
@@ -71,7 +71,7 @@ export function getUserDetail(username: string, role: string) {
   return http.get(`${localhost}/api/user/detail`, {
     username,
     role,
-  })
+  }, undefined, { requireAuth: true })
 }
 
 /**
@@ -81,7 +81,7 @@ export function getMaxChooseNum(activityId: string, teacherId: string) {
   return http.get(`${localhost}/api/user/getMaxSelectNum`, {
     activityId,
     teacherId,
-  })
+  }, undefined, { requireAuth: true })
 }
 
 /**

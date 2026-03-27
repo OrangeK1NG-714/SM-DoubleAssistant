@@ -12,7 +12,7 @@ import { getTeacherList } from '@/api/teaInfo'
 import { getChooseCountWithActivityId } from '@/api/useraction'
 import { useUserStore } from '@/store/user'
 
-import PLATFORM from '@/utils/platform'
+const IOS_BLUE = '#0A84FF'
 
 const userStore = useUserStore()
 
@@ -82,36 +82,61 @@ onLoad(async () => {
 </script>
 
 <template>
-  <view class="pb-30">
-    <!-- 动态渲染志愿列表 -->
-    <view v-for="(item, index) in ['第一志愿', '第二志愿', '第三志愿']" :key="index">
-      <view class="bg-gray-200 text-6">
-        {{ item }}
+  <view class="ios-page pb-30">
+    <view class="px-5 pt-6">
+      <view class="ios-title">
+        我的志愿
       </view>
-      <view class="">
-        {{ sortedList[index] ? sortedList[index].mentor_name : '未选择' }}
+      <view class="ios-subtitle mt-2">
+        查看已提交的志愿顺序与最终导师结果。
       </view>
     </view>
 
-    <view v-if="mentor" class="mt-5 h-25 flex items-center justify-center bg-gray-300">
-      导师：{{ mentor }}老师
-    </view>
-    <view v-else class="mt-5 h-25 flex items-center justify-center bg-gray-300">
-      导师还在选择中...请稍等
+    <view class="px-5 pb-24 pt-6">
+      <view class="ios-card">
+        <view
+          v-for="(label, index) in ['第一志愿', '第二志愿', '第三志愿']"
+          :key="label"
+          class="ios-cell"
+        >
+          <view class="ios-cell__label" style="width: 160rpx;">
+            {{ label }}
+          </view>
+          <view class="ios-cell__content">
+            <view class="text-[28rpx]" :class="sortedList[index] ? 'text-[#111827] font-600' : 'text-[#9CA3AF]'">
+              {{ sortedList[index] ? sortedList[index].mentor_name : '未选择' }}
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <view class="ios-card mt-5" style="padding: 26rpx;">
+        <view class="text-[24rpx] text-[#6B7280]">
+          最终导师
+        </view>
+        <view v-if="mentor" class="mt-2 text-[32rpx] text-[#111827] font-700">
+          {{ mentor }} 老师
+        </view>
+        <view v-else class="mt-2 text-[28rpx] text-[#6B7280]">
+          结果生成中，请稍后再看
+        </view>
+      </view>
     </view>
 
     <!-- 底部固定导航栏 -->
-    <view class="bottom-nav fixed bottom-0 left-0 right-0 z-50 flex border-t border-gray-200 bg-white p-2">
+    <view class="bottom-nav fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white px-3 py-4">
       <button
-        class="nav-btn mx-1 flex-1 rounded py-2"
-        :class="isProgressPage ? 'bg-gray-200 text-gray-600' : 'bg-blue-500 text-white'"
+        class="ios-btn nav-switch-btn mx-1 flex-1"
+        :class="isProgressPage ? 'ios-btn--secondary' : 'ios-btn--primary'"
+        :style="isProgressPage ? {} : { backgroundColor: IOS_BLUE }"
         @tap="navigateToMyChoices"
       >
         我的志愿
       </button>
       <button
-        class="nav-btn mx-1 flex-1 rounded py-2"
-        :class="isProgressPage ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-600'"
+        class="ios-btn nav-switch-btn mx-1 flex-1"
+        :class="isProgressPage ? 'ios-btn--primary' : 'ios-btn--secondary'"
+        :style="isProgressPage ? { backgroundColor: IOS_BLUE } : {}"
         @tap="navigateToProgress"
       >
         选择页面
@@ -119,3 +144,18 @@ onLoad(async () => {
     </view>
   </view>
 </template>
+
+<style scoped>
+.bottom-nav {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.nav-switch-btn {
+  width: auto;
+  min-width: 0;
+  padding: 20rpx 12rpx;
+  font-size: 32rpx;
+}
+</style>

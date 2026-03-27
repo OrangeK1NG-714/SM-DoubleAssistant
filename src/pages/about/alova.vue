@@ -12,6 +12,7 @@ import { useRequest } from 'alova/client'
 import { foo } from '@/api/alova-foo'
 
 const initialData = undefined
+const IOS_BLUE = '#0A84FF'
 
 const { loading, data, send } = useRequest(foo, {
   initialData,
@@ -24,30 +25,41 @@ function reset() {
 </script>
 
 <template>
-  <view class="p-6 text-center">
-    <button class="my-6 w-200px text-green" @click="send">
-      发送请求
-    </button>
-    <view class="h-16">
-      <view v-if="loading">
-        loading...
+  <view class="ios-page">
+    <view class="px-5 pt-6">
+      <view class="ios-title">
+        Alova 演示
       </view>
-      <block v-else>
-        <view class="text-xl">
-          请求数据如下
-        </view>
-        <view class="text-green leading-8">
-          {{ JSON.stringify(data) }}
-        </view>
-      </block>
-
-      <view class="text-red">
-        {{ data?.id }}
+      <view class="ios-subtitle mt-2">
+        请求/重置示例（保持功能不变）。
       </view>
     </view>
-    <button class="my-6 w-200px text-red" :disabled="!data" @click="reset">
-      重置数据
-    </button>
+
+    <view class="px-5 pt-6 pb-10">
+      <view class="ios-card" style="padding: 26rpx;">
+        <button class="ios-btn ios-btn--primary w-full" :style="{ backgroundColor: IOS_BLUE }" @click="send">
+          {{ loading ? '请求中…' : '发送请求' }}
+        </button>
+
+        <view class="mt-5">
+          <view class="text-[24rpx] text-[#6B7280]">
+            返回数据
+          </view>
+          <view class="mt-2 ios-card" style="padding: 18rpx; box-shadow: none; background: rgba(17,24,39,0.04);">
+            <view v-if="loading" class="text-[26rpx] text-[#6B7280]">
+              loading…
+            </view>
+            <view v-else class="text-[24rpx] leading-relaxed text-[#111827]" style="word-break: break-all;">
+              {{ JSON.stringify(data) }}
+            </view>
+          </view>
+        </view>
+
+        <button class="ios-btn ios-btn--secondary mt-5 w-full" :disabled="!data" @click="reset">
+          重置数据
+        </button>
+      </view>
+    </view>
   </view>
 </template>
 

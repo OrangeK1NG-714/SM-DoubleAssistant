@@ -9,10 +9,8 @@
 </route>
 
 <script lang="ts" setup>
-import { getUserInfo, login } from '@/api/login'
 import { updateStdPassword } from '@/api/stdInfo'
 import { useUserStore } from '@/store/user'
-import PLATFORM from '@/utils/platform'
 
 defineOptions({
   name: 'Home',
@@ -45,84 +43,56 @@ systemInfo = uni.getSystemInfoSync()
 safeAreaInsets = systemInfo.safeAreaInsets
 // #endif
 
-// 表单数据
-const username = ref('')
-const password = ref('')
-// 登录
-async function handleLogin() {
-  if (!username.value || !password.value) {
-    uni.showToast({
-      title: '请输入账号和密码',
-      icon: 'none',
-    })
-    return
-  }
-  try {
-    uni.showLoading({
-      title: '登录中...',
-    })
-    // 调用登录接口
-    const res = await login({
-      username: username.value,
-      password: password.value,
-    })
-    if (res.code === 200) {
-      uni.showToast({
-        title: '登录成功',
-        icon: 'success',
-      })
-      // 存储token
-      const useStore = useUserStore()
-      useStore.setUserInfo(res.data.username, res.data.role, res.data.token)
-      uni.setStorageSync('token', res.data.token)
-      const resUserInfo = await getUserInfo(username.value, res.data.role)
-      console.log(resUserInfo)
-      console.log(res)
-
-      if (res.data.role === 'student' && resUserInfo.isEmpty === 0) {
-        // 跳转页面
-        uni.navigateTo({
-          url: '/pages/userMsg/index',
-        })
-      }
-      else {
-        // 跳转页面
-        uni.navigateTo({
-          url: '/pages/index/index',
-        })
-      }
-    }
-  }
-  catch (error) {
-    console.log(error)
-  }
-}
-
 // 密码重置相关状态
 const resetUsername = ref('')
 const verifyCode = ref('')
 const newPassword = ref('')
 const confirmPassword = ref('')
 const countDown = ref(0)
+const isSending = ref(false)
+const isSubmitting = ref(false)
+let countdownTimer: ReturnType<typeof setInterval> | null = null
+const focusedField = ref<string | null>(null)
+
+function cleanupTimer() {
+  if (countdownTimer) {
+    clearInterval(countdownTimer)
+    countdownTimer = null
+  }
+}
+
+onUnload(() => {
+  cleanupTimer()
+})
+
 // 发送验证码
 async function sendVerifyCode() {
   if (!resetUsername.value) {
     uni.showToast({ title: '请输入账号', icon: 'none' })
     return
   }
+  if (isSending.value || countDown.value > 0)
+    return
   // 调用发送验证码API
   // ...
+  isSending.value = true
+  cleanupTimer()
   countDown.value = 60
-  const timer = setInterval(() => {
+  countdownTimer = setInterval(() => {
     countDown.value--
     if (countDown.value <= 0) {
-      clearInterval(timer)
+      cleanupTimer()
     }
   }, 1000)
+  setTimeout(() => {
+    isSending.value = false
+  }, 300)
 }
 
 // 重置密码
 async function handleResetPassword() {
+  if (isSubmitting.value)
+    return
   if (!resetUsername.value || !newPassword.value || !confirmPassword.value) {
     uni.showToast({ title: '请填写完整信息', icon: 'none' })
     return
@@ -134,6 +104,8 @@ async function handleResetPassword() {
   // 调用重置密码API
   // ...
   try {
+    isSubmitting.value = true
+    uni.showLoading({ title: '提交中…' })
     const res = await updateStdPassword({
       username: resetUsername.value,
       password: newPassword.value,
@@ -151,6 +123,10 @@ async function handleResetPassword() {
 
     uni.showToast({ title: `密码重置失败,${error.data.msg}`, icon: 'none' })
   }
+  finally {
+    isSubmitting.value = false
+    uni.hideLoading()
+  }
 }
 // 测试 uni API 自动引入
 onLoad(() => {
@@ -161,46 +137,99 @@ console.log('index')
 </script>
 
 <template>
-  <view class="bg-white px-4 pt-2" :style="{ marginTop: `${safeAreaInsets?.top}px` }">
-    <view class="p-4">
-      <view class="mb-4">
-        <text class="text-sm text-gray-600">
-          账号
-        </text>
-        <input v-model="resetUsername" class="mt-1 w-full border border-gray-300 rounded-md p-2" placeholder="请输入学号/工号">
+  <view class="ios-page" :style="{ paddingTop: `${safeAreaInsets?.top || 0}px` }">
+    <view class="px-5 pt-6">
+      <view class="ios-title">
+        重置密码
       </view>
-      <view class="mb-4 flex space-x-2">
-        <view class="flex-1">
-          <text class="text-sm text-gray-600">
-            验证码
-          </text>
-          <input v-model="verifyCode" class="mt-1 w-full border border-gray-300 rounded-md p-2" placeholder="请输入验证码">
+      <view class="ios-subtitle mt-2">
+        请输入账号并设置新密码。
+      </view>
+    </view>
+
+    <view class="px-5 pt-6 pb-10">
+      <view class="ios-card">
+        <view class="ios-cell" :class="{ 'ios-cell--focused': focusedField === 'username' }">
+          <view class="ios-cell__label">
+            账号
+          </view>
+          <view class="ios-cell__content">
+            <input
+              v-model="resetUsername"
+              class="ios-input"
+              placeholder="学号 / 工号"
+              :disabled="isSubmitting"
+              @focus="focusedField = 'username'"
+              @blur="focusedField = null"
+            >
+          </view>
         </view>
-        <button class="mt-6 h-10 rounded-md bg-[#409eff] px-4 text-white" @click="sendVerifyCode">
-          {{ countDown > 0 ? `${countDown}s后重新发送` : '发送验证码' }}
+        <view class="ios-divider" style="margin-left: 28rpx;" />
+        <view class="ios-cell" :class="{ 'ios-cell--focused': focusedField === 'code' }">
+          <view class="ios-cell__label">
+            验证码
+          </view>
+          <view class="ios-cell__content flex items-center justify-between">
+            <input
+              v-model="verifyCode"
+              class="ios-input"
+              placeholder="选填"
+              :disabled="isSubmitting"
+              @focus="focusedField = 'code'"
+              @blur="focusedField = null"
+            >
+            <button
+              class="ios-btn ios-btn--secondary"
+              style="padding: 14rpx 18rpx; font-size: 26rpx; margin-left: 12rpx;"
+              :disabled="isSubmitting || isSending || countDown > 0"
+              @click="sendVerifyCode"
+            >
+              {{ countDown > 0 ? `${countDown}s` : '发送' }}
+            </button>
+          </view>
+        </view>
+        <view class="ios-divider" style="margin-left: 28rpx;" />
+        <view class="ios-cell" :class="{ 'ios-cell--focused': focusedField === 'new' }">
+          <view class="ios-cell__label">
+            新密码
+          </view>
+          <view class="ios-cell__content">
+            <input
+              v-model="newPassword"
+              class="ios-input"
+              password
+              placeholder="请输入新密码"
+              :disabled="isSubmitting"
+              @focus="focusedField = 'new'"
+              @blur="focusedField = null"
+            >
+          </view>
+        </view>
+        <view class="ios-divider" style="margin-left: 28rpx;" />
+        <view class="ios-cell" :class="{ 'ios-cell--focused': focusedField === 'confirm' }">
+          <view class="ios-cell__label">
+            确认
+          </view>
+          <view class="ios-cell__content">
+            <input
+              v-model="confirmPassword"
+              class="ios-input"
+              password
+              placeholder="再次输入新密码"
+              :disabled="isSubmitting"
+              @focus="focusedField = 'confirm'"
+              @blur="focusedField = null"
+              @confirm="handleResetPassword"
+            >
+          </view>
+        </view>
+      </view>
+
+      <view class="mt-8">
+        <button class="ios-btn ios-btn--primary w-full" :disabled="isSubmitting" @click="handleResetPassword">
+          {{ isSubmitting ? '提交中…' : '确认重置' }}
         </button>
       </view>
-      <view class="mb-4">
-        <text class="text-sm text-gray-600">
-          新密码
-        </text>
-        <input
-          v-model="newPassword" class="mt-1 w-full border border-gray-300 rounded-md p-2"
-          placeholder="请输入新密码"
-        >
-      </view>
-      <view class="mb-4">
-        <text class="text-sm text-gray-600">
-          确认密码
-        </text>
-        <input
-          v-model="confirmPassword" class="mt-1 w-full border border-gray-300 rounded-md p-2"
-          placeholder="请确认新密码"
-        >
-      </view>
-      <button class="mt-4 w-full rounded-md bg-[#409eff] py-2 text-white" @click="handleResetPassword">
-        确认重置
-      </button>
     </view>
   </view>
 </template>

@@ -1,7 +1,7 @@
 // import type { IActivityList } from './types/userAction'
 import { http } from '@/utils/http'
 
-// const localhost = 'http://127.0.0.1:7001'
+// const localhost = 'http://localhost:7001'
 const localhost = 'https://richardq.tech'
 interface ITeacherListInActivity {
   _id: string
@@ -24,6 +24,8 @@ interface ISelectTeacher {
   isChose: boolean
   studentId: string
   createTime: string
+  subscribeTemplateId?: string
+  subscribeStatus?: string
 }
 
 /**
@@ -32,7 +34,7 @@ interface ISelectTeacher {
 export function getTeacherListInActivity(activityId: string) {
   return http.get<ITeacherListInActivity>(`${localhost}/api/student/getTeacherList`, {
     activityId,
-  })
+  }, undefined, { requireAuth: true })
 }
 /**
  * 查询某学生是否在活动中
@@ -41,13 +43,13 @@ export function isStudentInActivity(activityId: string, studentId: string) {
   return http.get<IStudentListInActivity>(`${localhost}/api/student/isInActivity`, {
     activityId,
     studentId,
-  })
+  }, undefined, { requireAuth: true })
 }
 /**
  * 新增学生选老师选项
  */
 export function selectTeacher(data: ISelectTeacher) {
-  return http.post(`${localhost}/api/student/selectTeacher`, data)
+  return http.post(`${localhost}/api/student/selectTeacher`, data, undefined, undefined, { requireAuth: true })
 }
 
 interface IWriteStdInfo {
@@ -65,7 +67,7 @@ interface IWriteStdInfo {
  * 写入学生信息
  */
 export function writeStdInfo(data: IWriteStdInfo) {
-  return http.post(`${localhost}/api/user/writeMsg`, data)
+  return http.post(`${localhost}/api/user/writeMsg`, data, undefined, undefined, { requireAuth: true })
 }
 
 interface StudentData {
@@ -91,7 +93,7 @@ interface IStdInfo {
 export function getStudentMsg(studentId: string) {
   return http.get<IStdInfo>(`${localhost}/api/student/getMsg`, {
     studentId,
-  })
+  }, undefined, { requireAuth: true })
 }
 
 interface IUpdatePassword {
@@ -102,7 +104,14 @@ interface IUpdatePassword {
  *  修改学生密码
  */
 export function updateStdPassword(data: IUpdatePassword) {
-  return http.post(`${localhost}/api/admin/resetPassword`, data)
+  return http.post(`${localhost}/api/admin/resetPassword`, data, undefined, undefined, { requireAuth: true })
+}
+
+/**
+ * 上报学生微信 openid（传入 wx.login 返回的 code，后端换取并保存）
+ */
+export function saveOpenid(code: string, studentId: string) {
+  return http.post(`${localhost}/api/student/saveOpenid`, { code, studentId }, undefined, undefined, { requireAuth: true })
 }
 
 /**
@@ -112,5 +121,5 @@ export function getStudentFinalChoice(studentId: string, activityId: string) {
   return http.get(`${localhost}/api/admin/getFinalChoose`, {
     studentId,
     activityId,
-  })
+  }, undefined, { requireAuth: true })
 }
