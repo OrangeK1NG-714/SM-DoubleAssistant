@@ -10,9 +10,8 @@
 import { getStudentFinalChoice } from '@/api/stdInfo'
 import { getTeacherList } from '@/api/teaInfo'
 import { getChooseCountWithActivityId } from '@/api/useraction'
+import { IOS_BLUE } from '@/constants/theme'
 import { useUserStore } from '@/store/user'
-
-const IOS_BLUE = '#0A84FF'
 
 const userStore = useUserStore()
 
@@ -21,16 +20,6 @@ const list = ref<any[]>([])
 const sortedList = ref<any[]>([])
 const mentor = ref<string>('')
 const isProgressPage = ref(false)
-
-// 获取学生导师信息
-async function getStudentMentor(std_id: string) {
-
-}
-
-// 加载志愿数据
-async function loadVolunteerData() {
-
-}
 
 // 导航到选择页面
 function navigateToProgress() {
@@ -53,36 +42,34 @@ function navigateHome() {
 }
 
 onLoad(async () => {
-  console.log(userStore.userInfo)
+  try {
+    const res: any = await getChooseCountWithActivityId(userStore.userInfo.activityId, userStore.userInfo.username)
+    if (res.length === 0) {
+      uni.showToast({
+        title: '您还未选择志愿',
+        icon: 'none',
+        duration: 2000,
+      })
+    }
+    res.sort((a: any, b: any) => a.order - b.order)
+    const teacherList: any = await getTeacherList()
 
-  const res: any = await getChooseCountWithActivityId(userStore.userInfo.activityId, userStore.userInfo.username)
-  console.log(res)
-  if (res.length === 0) {
-    uni.showToast({
-      title: '您还未选择志愿',
-      icon: 'none',
-      duration: 2000, // 增加持续时间
+    const teacherNameMap: Record<number, string> = {}
+    teacherList.data.forEach((item) => {
+      teacherNameMap[item.teacherId] = item.name
     })
+
+    const finalChoice: any = await getStudentFinalChoice(userStore.userInfo.username, userStore.userInfo.activityId)
+    sortedList.value = res.map(item => ({
+      ...item,
+      mentor_name: teacherNameMap[item.teacherId],
+    }))
+    if (finalChoice.data) {
+      mentor.value = teacherNameMap[finalChoice.teacherId]
+    }
   }
-  res.sort((a: any, b: any) => a.order - b.order)
-  const teacherList: any = await getTeacherList()
-  console.log(teacherList)
-
-  const teacherNameMap: Record<number, string> = {}
-  teacherList.data.forEach((item) => {
-    teacherNameMap[item.teacherId] = item.name
-  })
-  console.log(teacherNameMap)
-  console.log(res)
-
-  const finalChoice: any = await getStudentFinalChoice(userStore.userInfo.username, userStore.userInfo.activityId)
-  console.log(finalChoice)
-  sortedList.value = res.map(item => ({
-    ...item,
-    mentor_name: teacherNameMap[item.teacherId],
-  }))
-  if (finalChoice.data) {
-    mentor.value = teacherNameMap[finalChoice.teacherId]
+  catch (error) {
+    uni.showToast({ title: '数据加载失败', icon: 'none' })
   }
 })
 </script>

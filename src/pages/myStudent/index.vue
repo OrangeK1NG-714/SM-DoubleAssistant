@@ -8,12 +8,10 @@
 
 <script lang="ts" setup>
 import { getSelectState } from '@/api/teaInfo'
+import { IOS_BLUE } from '@/constants/theme'
 import { useUserStore } from '@/store/user'
-
-const IOS_BLUE = '#0A84FF'
 const tabbar = ref('myStudent')
 const userStore = useUserStore()
-const scrollHeight = ref(0)
 const studentList = ref<Array<any>>([])
 const currentStudent = ref<any>(null)
 const dialogVisible = ref(false)
@@ -48,18 +46,6 @@ function getOrderStyle(order: number) {
     },
   }
   return styles[order] || styles[1]
-}
-function calculateScrollHeight() {
-  const systemInfo = uni.getSystemInfoSync()
-  const query = uni.createSelectorQuery()
-  query.select('.header').boundingClientRect()
-  query.select('.footer').boundingClientRect()
-  query.exec((res) => {
-    const headerHeight = res[0]?.height || 0
-    const footerHeight = res[1]?.top || 0
-    scrollHeight.value
-      = systemInfo.windowHeight - headerHeight - footerHeight - 80
-  })
 }
 function viewDetail(item: any) {
   if (item.data) {

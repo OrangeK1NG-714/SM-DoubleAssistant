@@ -86,7 +86,6 @@ const submitting = ref(false)
 
 function uploadResume() {
   // 上传简历逻辑
-  console.log('上传简历')
   uni.chooseImage({
     count: 1,
     type: 'file',
@@ -112,8 +111,6 @@ function uploadResume() {
         return
       }
 
-      console.log('上传参数:', { fileName, studentId, filePath: tempFilePath })
-
       uni.uploadFile({
         url: `${getEnvBaseUrl()}/api/student/uploadResume`,
         filePath: tempFilePath,
@@ -124,7 +121,6 @@ function uploadResume() {
           filePath: tempFilePath,
         },
         success(res) {
-          console.log(res)
           if (res.statusCode === 200) {
             uni.showToast({
               title: '上传成功',
@@ -139,7 +135,6 @@ function uploadResume() {
 }
 
 function submitForm() {
-  console.log(formData.value)
 
   // 第一层校验：点击提交按钮时必须先通过校验
   if (!validateForm()) {
@@ -158,14 +153,14 @@ function handleDataUsageAgree() {
     return
   }
 
-  // 提交表单逻辑
-  console.log('提交表单', formData.value)
-  writeStdInfo(formData.value).then((res) => {
+  writeStdInfo(formData.value).then(() => {
     uni.showToast({
       title: '提交成功',
       icon: 'success',
     })
     uni.navigateTo({ url: '/pages/index/index' })
+  }).catch(() => {
+    uni.showToast({ title: '提交失败，请重试', icon: 'none' })
   })
 }
 

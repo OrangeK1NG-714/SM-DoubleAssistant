@@ -25,22 +25,6 @@
       }
     },
     {
-      "path": "pages/about/about",
-      "type": "page",
-      "layout": "tabbar",
-      "style": {
-        "navigationBarTitleText": "关于"
-      }
-    },
-    {
-      "path": "pages/about/alova",
-      "type": "page",
-      "layout": "default",
-      "style": {
-        "navigationBarTitleText": "Alova 请求演示"
-      }
-    },
-    {
       "path": "pages/index/index",
       "type": "page",
       "layout": "default",
