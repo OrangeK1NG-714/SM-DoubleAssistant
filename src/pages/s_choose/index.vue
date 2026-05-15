@@ -105,9 +105,13 @@ async function viewDetail(data: any) {
   currentTeacher.value = data
   showTeacherSheet.value = true
   try {
+    const accessToken = uni.getStorageSync('accessToken')
     // 使用uni.downloadFile直接下载图片文件
     const downloadResult = await uni.downloadFile({
       url: `${localhost}/api/teacher/getTeacherResume?teacherId=${data.teacherId}`,
+      header: {
+        Authorization: `Bearer ${accessToken}`,
+      },
     })
 
     if (downloadResult.statusCode === 200) {
@@ -174,12 +178,11 @@ function toggleSelect(teacherId: string) {
     return
   }
 
-  // 原子化更新数据
+  // 原子化更新数据（不修改 number，因为实际选择还未提交到后端）
   const updatedList = [...listToUpdate]
   updatedList[index] = {
     ...teacher,
     selected: !wasSelected,
-    number: wasSelected ? teacher.number - 1 : teacher.number + 1,
   }
 
   // 更新对应的列表
@@ -206,16 +209,16 @@ function toggleSelect(teacherId: string) {
     ]
   }
   else {
+    // 先找到被移除导师在 selectedMentors 中的索引，清除对应志愿顺序
+    const removeIndex = selectedMentors.value.findIndex(
+      item => item.teacherId === teacherId,
+    )
+    if (removeIndex !== -1) {
+      priority.value.splice(removeIndex, 1)
+    }
     selectedMentors.value = selectedMentors.value.filter(
       item => item.teacherId !== teacherId,
     )
-    // 同步清除对应志愿顺序
-    const priorityIndex = priority.value.findIndex(
-      (_, i) => selectedMentors.value[i]?.teacherId === teacherId,
-    )
-    if (priorityIndex !== -1) {
-      priority.value.splice(priorityIndex, 1)
-    }
   }
 }
 
@@ -727,7 +730,7 @@ onPullDownRefresh(async () => {
             mode="selector"
             :range="priorityOptions"
             range-key="label"
-            :value="priority[index] || 0"
+            :value="(priority[index] || 1) - 1"
             class="priority-picker mt-2 block border border-gray-200 rounded p-2"
             @change="(e) => changePriority(e, index)"
           >
@@ -903,7 +906,7 @@ onPullDownRefresh(async () => {
 }
 
 .s-choose-scroll {
-  width: 90%;
+  width: 100%;
   overflow-x: hidden;
 }
 
