@@ -46,6 +46,12 @@ function navigateToMyChoices() {
   })
 }
 
+function navigateHome() {
+  uni.navigateTo({
+    url: '/pages/index/index',
+  })
+}
+
 onLoad(async () => {
   console.log(userStore.userInfo)
 
@@ -84,11 +90,19 @@ onLoad(async () => {
 <template>
   <view class="ios-page pb-30">
     <view class="px-5 pt-6">
-      <view class="ios-title">
-        我的志愿
-      </view>
-      <view class="ios-subtitle mt-2">
-        查看已提交的志愿顺序与最终导师结果。
+      <view class="ios-header-row">
+        <view class="ios-header-main">
+          <view class="ios-title">
+            我的志愿
+          </view>
+          <view class="ios-subtitle mt-2">
+            查看已提交的志愿顺序与最终导师结果。
+          </view>
+        </view>
+
+        <button class="ios-home-btn" @tap="navigateHome">
+          首页
+        </button>
       </view>
     </view>
 
@@ -146,6 +160,37 @@ onLoad(async () => {
 </template>
 
 <style scoped>
+.ios-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.ios-header-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.ios-home-btn {
+  margin: 0;
+  min-width: 112rpx;
+  border-radius: 999rpx;
+  padding: 12rpx 22rpx;
+  font-size: 24rpx;
+  font-weight: 600;
+  line-height: 1;
+  background: rgba(17, 24, 39, 0.06);
+  color: #111827;
+  border: 1rpx solid rgba(17, 24, 39, 0.08);
+  box-shadow: 0 6rpx 16rpx rgba(0, 0, 0, 0.06);
+}
+
+.ios-home-btn:active {
+  transform: scale(0.98);
+  opacity: 0.9;
+}
+
 .bottom-nav {
   display: flex;
   align-items: center;

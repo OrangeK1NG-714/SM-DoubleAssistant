@@ -10,6 +10,7 @@
 <script lang="ts" setup>
 import { writeStdInfo } from '@/api/stdInfo'
 import { useUserStore } from '@/store/user'
+import { getEnvBaseUrl } from '@/utils'
 import PLATFORM from '@/utils/platform'
 
 // 定义表单数据类型
@@ -114,7 +115,7 @@ function uploadResume() {
       console.log('上传参数:', { fileName, studentId, filePath: tempFilePath })
 
       uni.uploadFile({
-        url: 'http://richardq.tech:7001/api/student/uploadResume',
+        url: `${getEnvBaseUrl()}/api/student/uploadResume`,
         filePath: tempFilePath,
         name: 'file',
         formData: {

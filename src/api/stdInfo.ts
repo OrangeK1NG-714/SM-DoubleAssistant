@@ -1,8 +1,8 @@
 // import type { IActivityList } from './types/userAction'
+import { getEnvBaseUrl } from '@/utils'
 import { http } from '@/utils/http'
 
-// const localhost = 'http://localhost:7001'
-const localhost = 'https://richardq.tech'
+const localhost = getEnvBaseUrl()
 interface ITeacherListInActivity {
   _id: string
   activityId: string
@@ -121,5 +121,26 @@ export function getStudentFinalChoice(studentId: string, activityId: string) {
   return http.get(`${localhost}/api/admin/getFinalChoose`, {
     studentId,
     activityId,
+  }, undefined, { requireAuth: true })
+}
+
+/**
+ * AI 推荐导师响应项
+ */
+export interface IRecommendTeacherItem {
+  teacherId: string
+  name: string
+  matchScore: number
+  slot: string
+  reason: string
+}
+
+/**
+ * AI 推荐导师
+ */
+export function getRecommendTeachers(activityId: string, studentId: string) {
+  return http.get<IRecommendTeacherItem[]>(`${localhost}/api/student/recommendTeachers`, {
+    activityId,
+    studentId,
   }, undefined, { requireAuth: true })
 }

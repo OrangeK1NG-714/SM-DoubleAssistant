@@ -1,9 +1,7 @@
 import type { CustomRequestOptions } from '@/interceptors/request'
+import { getEnvBaseUrl } from '@/utils'
 
-// 本地127.0.0.1:7001
-// 服务器47.118.26.28:7001
-// const localhost = 'http://localhost:7001'
-const localhost = 'https://richardq.tech'
+const localhost = getEnvBaseUrl()
 /**
  * 刷新token返回结果
  */

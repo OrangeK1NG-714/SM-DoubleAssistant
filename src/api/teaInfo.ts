@@ -1,8 +1,8 @@
 // import type { IActivityList } from './types/userAction'
+import { getEnvBaseUrl } from '@/utils'
 import { http } from '@/utils/http'
 
-// const localhost = 'http://localhost:7001'
-const localhost = 'https://richardq.tech'
+const localhost = getEnvBaseUrl()
 
 interface ITeacherList {
   _id: string

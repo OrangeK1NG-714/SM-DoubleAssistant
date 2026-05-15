@@ -115,6 +115,24 @@ function openMyStudent() {
   })
 }
 
+function handleLogout() {
+  uni.showModal({
+    title: '退出登录',
+    content: '确定要退出当前账号吗？',
+    confirmText: '退出',
+    cancelText: '取消',
+    success: (res) => {
+      if (!res.confirm)
+        return
+
+      useStore.clearUserInfo()
+      uni.reLaunch({
+        url: '/pages/login/login',
+      })
+    },
+  })
+}
+
 async function enterSystem(id: string) {
   uni.showToast({ title: '进入中…', icon: 'none' })
   console.log(id)
@@ -228,30 +246,38 @@ onLoad(async () => {
 <template>
   <view class="ios-page" :style="{ paddingTop: `${safeAreaInsets?.top || 0}px` }">
     <view class="px-5 pt-6">
-      <template v-if="role === 'student'">
-        <view class="ios-title">
-          你好，{{ name }}
+      <view class="ios-header-row">
+        <view class="ios-header-main">
+          <template v-if="role === 'student'">
+            <view class="ios-title">
+              你好，{{ name }}
+            </view>
+            <view class="ios-subtitle mt-2">
+              请选择活动后进入系统，开始选择导师。
+            </view>
+          </template>
+          <template v-else-if="role === 'teacher'">
+            <view class="ios-title">
+              你好，{{ name }}
+            </view>
+            <view class="ios-subtitle mt-2">
+              请选择活动后进入系统，开始选择学生。
+            </view>
+          </template>
+          <template v-else>
+            <view class="ios-title">
+              信息未录入
+            </view>
+            <view class="ios-subtitle mt-2" style="color:#FF3B30;">
+              请联系管理员完善信息
+            </view>
+          </template>
         </view>
-        <view class="ios-subtitle mt-2">
-          请选择活动后进入系统，开始选择导师。
-        </view>
-      </template>
-      <template v-else-if="role === 'teacher'">
-        <view class="ios-title">
-          你好，{{ name }}
-        </view>
-        <view class="ios-subtitle mt-2">
-          请选择活动后进入系统，开始选择学生。
-        </view>
-      </template>
-      <template v-else>
-        <view class="ios-title">
-          信息未录入
-        </view>
-        <view class="ios-subtitle mt-2" style="color:#FF3B30;">
-          请联系管理员完善信息
-        </view>
-      </template>
+
+        <button class="ios-logout-btn" @tap="handleLogout">
+          退出
+        </button>
+      </view>
 
       <!-- Segmented Control -->
       <view class="ios-seg mt-6">
@@ -271,23 +297,6 @@ onLoad(async () => {
         >
           已结束
         </view>
-      </view>
-
-      <view v-if="role === 'student' || role === 'teacher'" class="ios-quick-nav mt-4">
-        <button
-          v-if="role === 'student'"
-          class="ios-btn ios-btn--secondary ios-quick-nav-btn"
-          @tap="selectedActivity ? myVolunteer(selectedActivity.id) : openMyVolunteer()"
-        >
-          我的志愿
-        </button>
-        <button
-          v-if="role === 'teacher'"
-          class="ios-btn ios-btn--secondary ios-quick-nav-btn"
-          @tap="selectedActivity ? myStudent(selectedActivity.id) : openMyStudent()"
-        >
-          我的学生
-        </button>
       </view>
     </view>
 
@@ -408,6 +417,33 @@ onLoad(async () => {
 .ios-page {
   min-height: 100vh;
   background: #f2f2f7;
+}
+.ios-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+.ios-header-main {
+  flex: 1;
+  min-width: 0;
+}
+.ios-logout-btn {
+  margin: 0;
+  min-width: 112rpx;
+  border-radius: 999rpx;
+  padding: 12rpx 22rpx;
+  font-size: 24rpx;
+  font-weight: 600;
+  line-height: 1;
+  background: rgba(17, 24, 39, 0.06);
+  color: #111827;
+  border: 1rpx solid rgba(17, 24, 39, 0.08);
+  box-shadow: 0 6rpx 16rpx rgba(0, 0, 0, 0.06);
+}
+.ios-logout-btn:active {
+  transform: scale(0.98);
+  opacity: 0.9;
 }
 .ios-title {
   font-size: 44rpx;

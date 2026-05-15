@@ -284,6 +284,23 @@ async function toggleSelect(item: any) {
 
   try {
     if (item.isChose) {
+      const confirmCancel = await new Promise<boolean>((resolve) => {
+        uni.showModal({
+          title: '确认取消',
+          content: `确定不再选择学生「${item.data?.name || item.studentId}」吗？`,
+          confirmText: '确定',
+          cancelText: '再想想',
+          success: (res) => {
+            resolve(!!res.confirm)
+          },
+          fail: () => {
+            resolve(false)
+          },
+        })
+      })
+
+      if (!confirmCancel)
+        return
       const res = await cancelSelect({
         studentId: item.studentId,
         teacherId: userStore.userInfo.username,

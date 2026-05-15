@@ -9,9 +9,11 @@
 </route>
 
 <script lang="ts" setup>
+import type { IRecommendTeacherItem } from '@/api/stdInfo'
+
 import { onLoad } from '@dcloudio/uni-app'
 // import { ref } from 'vue'
-import { getTeacherListInActivity, selectTeacher } from '@/api/stdInfo'
+import { getRecommendTeachers, getTeacherListInActivity, selectTeacher } from '@/api/stdInfo'
 import { getMaxSelectNum, getTeacherList } from '@/api/teaInfo'
 import {
   getActivityDetail,
@@ -19,11 +21,11 @@ import {
   getChooseCountWithActivityId,
 } from '@/api/useraction'
 import { useUserStore } from '@/store/user'
+import { getEnvBaseUrl } from '@/utils'
 
 const store = useUserStore()
 
-// const localhost = 'http://localhost:7001'
-const localhost = 'https://richardq.tech'
+const localhost = getEnvBaseUrl()
 
 const IOS_BLUE = '#0A84FF'
 const SUBSCRIBE_TEMPLATE_ID = 'eLfrwx8SgoCSv3vXzAQNUhdCXr69xg5mhMio_xFHd3U'
@@ -61,6 +63,12 @@ const imageUrl = ref('') // 存储图片URL
 const showImage = ref(false) // 控制图片显示状态
 const showTeacherSheet = ref(false)
 const currentTeacher = ref<any | null>(null)
+
+// AI 推荐相关
+const showRecommendPopup = ref(false)
+const recommendLoading = ref(false)
+const recommendList = ref<IRecommendTeacherItem[]>([])
+const recommendError = ref('')
 
 // 计算滚动区域高度
 function calculateScrollHeight() {
@@ -234,12 +242,50 @@ async function requestSubmitSubscribeMessage() {
       tmplIds: [SUBSCRIBE_TEMPLATE_ID],
     })
 
+    const status = (result)[SUBSCRIBE_TEMPLATE_ID]
     console.log('订阅消息授权结果:', result)
+
+    if (status === 'accept') {
+      uni.showToast({ title: '订阅授权成功', icon: 'none' })
+    }
+    else if (status === 'reject') {
+      uni.showToast({ title: '你已拒绝订阅通知', icon: 'none' })
+    }
+    else if (status === 'ban') {
+      uni.showToast({ title: '订阅已被微信拦截', icon: 'none' })
+    }
+
+    return status
   }
-  catch (error) {
+  catch (error: any) {
     console.warn('订阅消息授权请求失败:', error)
+    uni.showToast({ title: error?.errMsg || '订阅授权调用失败', icon: 'none' })
+    return 'fail'
   }
   // #endif
+
+  // 非微信小程序环境直接返回
+  return 'not_weixin'
+}
+
+// 提交前询问是否开启结果通知（模拟“取餐提醒”体验）
+async function confirmSubscribeBeforeSubmit() {
+  // #ifdef MP-WEIXIN
+  const modalRes = await uni.showModal({
+    title: '结果通知',
+    content: '是否开启活动结果提醒？开启后将在活动结束时通过服务通知推送。',
+    confirmText: '开启提醒',
+    cancelText: '暂不开启',
+  })
+
+  if (!modalRes.confirm) {
+    return 'user_cancel'
+  }
+
+  return await requestSubmitSubscribeMessage()
+  // #endif
+
+  return 'not_weixin'
 }
 
 async function handleSubmit() {
@@ -309,8 +355,8 @@ async function handleSubmit() {
   }
   console.log(priority.value)
 
-  // 4-2. 先请求一次性订阅消息授权（微信小程序）
-  await requestSubmitSubscribeMessage()
+  // 4-2. 提交前先让用户确认是否开启提醒，再请求订阅授权（微信小程序）
+  const subscribeStatus = await confirmSubscribeBeforeSubmit()
 
   // 4-3. 提交志愿
   const submitData = selectedMentors.value.map((mentor, index) => ({
@@ -321,7 +367,7 @@ async function handleSubmit() {
     isChose: false,
     createTime: new Date().toString(),
     subscribeTemplateId: SUBSCRIBE_TEMPLATE_ID,
-    subscribeStatus: 'requested',
+    subscribeStatus,
   }))
   console.log(submitData)
   // 5. 提交数据
@@ -356,7 +402,7 @@ function navigateToMyChoices() {
 
 // 导航到选择页面
 function navigateToProgress() {
-  isProgressPage.value = false
+  isProgressPage.value = true
   uni.showToast({
     title: '在此页面中',
     icon: 'none',
@@ -366,6 +412,36 @@ function navigateToProgress() {
 
 // 阻止触摸移动
 function preventTouchMove() {}
+
+// AI 推荐导师
+async function handleAiRecommend() {
+  recommendLoading.value = true
+  recommendError.value = ''
+  recommendList.value = []
+  showRecommendPopup.value = true
+
+  try {
+    const res: any = await getRecommendTeachers(
+      store.userInfo.activityId,
+      store.userInfo.username,
+    )
+    console.log('AI 推荐结果:', res)
+
+    if (res.code === 200 && res.data && res.data.length > 0) {
+      recommendList.value = res.data
+    }
+    else {
+      recommendError.value = res.msg || '暂无推荐结果'
+    }
+  }
+  catch (error: any) {
+    console.error('AI 推荐失败:', error)
+    recommendError.value = error?.data?.msg || error?.message || 'AI 推荐请求失败'
+  }
+  finally {
+    recommendLoading.value = false
+  }
+}
 
 onLoad(() => {
   calculateScrollHeight()
@@ -517,6 +593,15 @@ onLoad(async () => {
       <view class="ios-subtitle mt-2">
         选择 3 位导师，并设置志愿顺序后提交。
       </view>
+
+      <!-- AI 推荐按钮 -->
+      <button
+        class="ios-btn ios-btn--primary mt-4 w-full"
+        style="background-color: #AF52DE; font-size: 28rpx; padding: 18rpx 0"
+        @tap="handleAiRecommend"
+      >
+        🤖 AI 智能推荐
+      </button>
 
       <view class="ios-seg mt-6">
         <view
@@ -870,6 +955,86 @@ onLoad(async () => {
         <button
           class="ios-btn ios-btn--secondary"
           @tap="showTeacherSheet = false"
+        >
+          关闭
+        </button>
+      </view>
+    </view>
+  </wd-popup>
+
+  <!-- AI 推荐结果弹窗 -->
+  <wd-popup
+    v-model="showRecommendPopup"
+    custom-style="border-radius:40rpx;"
+    position="bottom"
+  >
+    <view class="ios-sheet">
+      <view class="ios-sheet__handle" />
+      <view class="px-3 pb-2">
+        <view class="text-[32rpx] text-[#111827] font-700">
+          🤖 AI 推荐导师
+        </view>
+        <view class="mt-2 text-[24rpx] text-[#6B7280]">
+          基于你的方向和实时竞争数据，智能推荐志愿组合
+        </view>
+      </view>
+
+      <!-- 加载中 -->
+      <view v-if="recommendLoading" class="px-3 py-8 text-center">
+        <view class="text-[28rpx] text-[#6B7280]">
+          正在分析中...
+        </view>
+      </view>
+
+      <!-- 错误提示 -->
+      <view v-else-if="recommendError" class="px-3 py-8 text-center">
+        <view class="text-[28rpx] text-[#FF3B30]">
+          {{ recommendError }}
+        </view>
+      </view>
+
+      <!-- 推荐结果列表 -->
+      <view v-else class="px-3 pb-4">
+        <view
+          v-for="(item, index) in recommendList"
+          :key="item.teacherId"
+          class="ios-card mb-3"
+          style="padding: 24rpx"
+        >
+          <view class="flex items-center justify-between">
+            <view class="flex items-center gap-2">
+              <view
+                class="h-[48rpx] w-[48rpx] flex items-center justify-center rounded-full text-[24rpx] text-white font-700"
+                :style="{
+                  backgroundColor: index === 0 ? '#FF9500' : index === 1 ? '#8E8E93' : '#34C759',
+                }"
+              >
+                {{ index + 1 }}
+              </view>
+              <view class="text-[30rpx] text-[#111827] font-600">
+                {{ item.name }}
+              </view>
+            </view>
+            <view
+              class="rounded-full px-2 py-1 text-[22rpx] font-600"
+              :class="index < 2 ? 'bg-[#007AFF]/10 text-[#007AFF]' : 'bg-[#34C759]/10 text-[#34C759]'"
+            >
+              {{ item.slot || `第${index + 1}志愿` }}
+            </view>
+          </view>
+          <view class="mt-2 text-[24rpx] text-[#6B7280]">
+            {{ item.reason || '综合评分推荐' }}
+          </view>
+          <view class="mt-1 text-[22rpx] text-[#9CA3AF]">
+            综合分：{{ (item.matchScore * 100).toFixed(1) }}%
+          </view>
+        </view>
+      </view>
+
+      <view class="flex flex-col gap-3 px-3 pt-2">
+        <button
+          class="ios-btn ios-btn--secondary"
+          @tap="showRecommendPopup = false"
         >
           关闭
         </button>
