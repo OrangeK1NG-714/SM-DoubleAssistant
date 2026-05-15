@@ -57,25 +57,23 @@ function classifyActivities(activities: Array<any>) {
     const startDate = new Date(activity.startDate)
     const endDate = new Date(activity.endDate)
 
-    if (now >= startDate && now <= endDate) {
-      // 进行中的活动
-      ongoingList.value.push({
-        id: activity._id,
-        name: activity.name,
-        description: activity.description,
-        startDate: activity.startDate,
-        endDate: activity.endDate,
-      })
+    const item = {
+      id: activity._id,
+      name: activity.name,
+      description: activity.description,
+      startDate: activity.startDate,
+      endDate: activity.endDate,
+    }
+
+    if (now < startDate) {
+      // 未开始的活动也放在进行中列表（即将开始）
+      ongoingList.value.push(item)
+    }
+    else if (now >= startDate && now <= endDate) {
+      ongoingList.value.push(item)
     }
     else {
-      // 已结束的活动
-      endedList.value.push({
-        id: activity._id,
-        name: activity.name,
-        description: activity.description,
-        startDate: activity.startDate,
-        endDate: activity.endDate,
-      })
+      endedList.value.push(item)
     }
   })
 }
@@ -350,7 +348,7 @@ onPullDownRefresh(async () => {
             {{ item.description }}
           </view>
           <view class="ios-card__actions mt-4">
-            <button class="ios-btn ios-btn--secondary" disabled>
+            <button class="ios-btn ios-btn--secondary" @tap="viewDetail(item)">
               详情
             </button>
             <button class="ios-btn ios-btn--primary" disabled>
