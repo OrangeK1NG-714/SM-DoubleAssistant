@@ -56,6 +56,12 @@ const navItems = [
   { name: 't_choose', label: '选择情况' },
 ]
 
+const currentTabList = computed(() => {
+  if (activeTab.value === 'first') return firstList.value
+  if (activeTab.value === 'second') return secondList.value
+  return thirdList.value
+})
+
 async function loadData() {
   calculateScrollHeight()
   const res: any = await getChooseCount(userStore.userInfo.username, userStore.userInfo.activityId)
@@ -315,17 +321,24 @@ async function toggleSelect(item: any) {
 
         if (!confirmCancel)
           return
-        const res = await cancelSelect({
+
+        // 先 updateChoose（toggle isChose），再 cancelSelect（删除 Final）
+        // 这样如果 cancelSelect 失败，Choose.isChose 已被置为 false，不会出现不一致
+        await updateChoose({
+          studentId: item.studentId,
+          teacherId: item.teacherId,
+          activityId: item.activityId,
+        })
+        await cancelSelect({
           studentId: item.studentId,
           teacherId: userStore.userInfo.username,
           activityId: item.activityId,
         })
         item.isChose = false
-        item.finalTeacher = '' // 清空最终选择的老师
+        item.finalTeacher = ''
         selectedNum.value--
       }
       else {
-        // 判断当前选择人数是否小于最大允许人数
         if (selectedNum.value >= userStore.userInfo.maxSelectNum) {
           uni.showToast({
             title: `已达到最大选择人数限制(${userStore.userInfo.maxSelectNum}人)`,
@@ -334,29 +347,29 @@ async function toggleSelect(item: any) {
           return
         }
 
-        const res = await selectStudent({
+        // 先 selectStudent（创建 Final），再 updateChoose（toggle isChose）
+        await selectStudent({
           studentId: item.studentId,
           teacherId: item.teacherId,
           activityId: item.activityId,
           data: item.data,
           order: item.order,
         })
+        await updateChoose({
+          studentId: item.studentId,
+          teacherId: item.teacherId,
+          activityId: item.activityId,
+        })
 
         item.isChose = true
-        item.finalTeacher = userStore.userInfo.username // 设置为当前老师
+        item.finalTeacher = userStore.userInfo.username
         selectedNum.value++
       }
 
-      // 重新计算三个志愿学生列表，确保UI显示的数量能够实时更新
+      // 重新计算三个志愿学生列表
       firstChoseStudentList.value = firstList.value.filter(item => item.finalTeacher === item.teacherId)
       secondChoseStudentList.value = secondList.value.filter(item => item.finalTeacher === item.teacherId)
       thirdChoseStudentList.value = thirdList.value.filter(item => item.finalTeacher === item.teacherId)
-
-      const updateRes = await updateChoose({
-        studentId: item.studentId,
-        teacherId: item.teacherId,
-        activityId: item.activityId,
-      })
     }
     catch (error) {
       uni.showToast({ title: '操作失败，请重试', icon: 'none' })
@@ -509,116 +522,39 @@ function handleTabChange(e: any) {
     <StudentDialog :visible="dialogVisible" :info="currentStudent" @close="handleCloseDialog" />
     <!-- 可滚动的内容区域 -->
     <scroll-view scroll-y class="w-90% px-5 pb-40 pt-5" :style="{ height: scrollHeight + 'px' }">
-      <!-- 第一志愿列表 -->
-      <template v-if="activeTab === 'first'">
-        <view v-if="firstList.length === 0" class="py-10 text-center text-[26rpx] text-[#6B7280]">
-          暂无第一志愿学生
-        </view>
-        <view v-for="item in firstList" :key="item._id" class="ios-card mb-4" style="padding: 0;">
-          <view class="ios-cell">
-            <view class="flex-1">
-              <view class="text-[28rpx] text-[#111827] font-700">
-                {{ item.data?.name || '未设置名字' }}
-                <text class="ml-2 text-[24rpx] text-[#6B7280] font-500">
-                  {{ item.data?.gender || '' }}
-                </text>
-              </view>
-              <view class="mt-1 text-[24rpx] text-[#6B7280]">
-                {{ item.data?.classNum || '未设置班级' }} · {{ item.data?.grade || '未设置年级' }}
-              </view>
+      <view v-if="currentTabList.length === 0" class="py-10 text-center text-[26rpx] text-[#6B7280]">
+        暂无{{ activeTab === 'first' ? '第一' : activeTab === 'second' ? '第二' : '第三' }}志愿学生
+      </view>
+      <view v-for="item in currentTabList" :key="item._id" class="ios-card mb-4" style="padding: 0;">
+        <view class="ios-cell">
+          <view class="flex-1">
+            <view class="text-[28rpx] text-[#111827] font-700">
+              {{ item.data?.name || '未设置名字' }}
+              <text class="ml-2 text-[24rpx] text-[#6B7280] font-500">
+                {{ item.data?.gender || '' }}
+              </text>
+            </view>
+            <view class="mt-1 text-[24rpx] text-[#6B7280]">
+              {{ item.data?.classNum || '未设置班级' }} · {{ item.data?.grade || '未设置年级' }}
             </view>
           </view>
-          <view class="ios-divider" style="margin-left: 28rpx;" />
-          <view class="flex gap-3 px-4 pb-4 pt-3">
-            <button class="ios-btn ios-btn--secondary flex-1" style="padding: 18rpx 18rpx; font-size: 28rpx;" @click="viewDetail(item.data)">
-              查看
-            </button>
-            <button
-              class="ios-btn flex-1"
-              :class="item.isChose ? 'ios-btn--primary' : (item.finalTeacher && item.finalTeacher !== item.teacherId ? 'ios-btn--secondary' : 'ios-btn--secondary')"
-              style="padding: 18rpx 18rpx; font-size: 28rpx;"
-              :disabled="item.finalTeacher.length > 0 && item.finalTeacher !== item.teacherId"
-              @click="toggleSelect(item)"
-            >
-              {{ item.finalTeacher === item.teacherId ? '已选' : (item.finalTeacher.length > 0 && item.finalTeacher !== item.teacherId) ? '被选走' : '选择' }}
-            </button>
-          </view>
         </view>
-      </template>
-
-      <!-- 第二志愿列表 -->
-      <template v-if="activeTab === 'second'">
-        <view v-if="secondList.length === 0" class="py-10 text-center text-[26rpx] text-[#6B7280]">
-          暂无第二志愿学生
+        <view class="ios-divider" style="margin-left: 28rpx;" />
+        <view class="flex gap-3 px-4 pb-4 pt-3">
+          <button class="ios-btn ios-btn--secondary flex-1" style="padding: 18rpx 18rpx; font-size: 28rpx;" @click="viewDetail(item.data)">
+            查看
+          </button>
+          <button
+            class="ios-btn flex-1"
+            :class="item.finalTeacher === item.teacherId ? 'ios-btn--primary' : 'ios-btn--secondary'"
+            style="padding: 18rpx 18rpx; font-size: 28rpx;"
+            :disabled="item.finalTeacher.length > 0 && item.finalTeacher !== item.teacherId"
+            @click="toggleSelect(item)"
+          >
+            {{ item.finalTeacher === item.teacherId ? '已选' : (item.finalTeacher.length > 0 && item.finalTeacher !== item.teacherId) ? '被选走' : '选择' }}
+          </button>
         </view>
-        <view v-for="item in secondList" :key="item.std_id" class="ios-card mb-4" style="padding: 0;">
-          <view class="ios-cell">
-            <view class="flex-1">
-              <view class="text-[28rpx] text-[#111827] font-700">
-                {{ item.data?.name || '未设置名字' }}
-                <text class="ml-2 text-[24rpx] text-[#6B7280] font-500">
-                  {{ item.data?.gender || '' }}
-                </text>
-              </view>
-              <view class="mt-1 text-[24rpx] text-[#6B7280]">
-                {{ item.data?.classNum || '未设置班级' }} · {{ item.data?.grade || '未设置年级' }}
-              </view>
-            </view>
-          </view>
-          <view class="ios-divider" style="margin-left: 28rpx;" />
-          <view class="flex gap-3 px-4 pb-4 pt-3">
-            <button class="ios-btn ios-btn--secondary flex-1" style="padding: 18rpx 18rpx; font-size: 28rpx;" @click="viewDetail(item.data)">
-              查看
-            </button>
-            <button
-              class="ios-btn flex-1"
-              :class="item.isChose ? 'ios-btn--primary' : (item.finalTeacher && item.finalTeacher !== item.teacherId ? 'ios-btn--secondary' : 'ios-btn--secondary')"
-              style="padding: 18rpx 18rpx; font-size: 28rpx;"
-              :disabled="item.finalTeacher.length > 0 && item.finalTeacher !== item.teacherId"
-              @click="toggleSelect(item)"
-            >
-              {{ item.finalTeacher === item.teacherId ? '已选' : (item.finalTeacher.length > 0 && item.finalTeacher !== item.teacherId) ? '被选走' : '选择' }}
-            </button>
-          </view>
-        </view>
-      </template>
-
-      <!-- 第三志愿列表 -->
-      <template v-if="activeTab === 'third'">
-        <view v-if="thirdList.length === 0" class="py-10 text-center text-[26rpx] text-[#6B7280]">
-          暂无第三志愿学生
-        </view>
-        <view v-for="item in thirdList" :key="item.std_id" class="ios-card mb-4" style="padding: 0;">
-          <view class="ios-cell">
-            <view class="flex-1">
-              <view class="text-[28rpx] text-[#111827] font-700">
-                {{ item.data?.name || '未设置名字' }}
-                <text class="ml-2 text-[24rpx] text-[#6B7280] font-500">
-                  {{ item.data?.gender || '' }}
-                </text>
-              </view>
-              <view class="mt-1 text-[24rpx] text-[#6B7280]">
-                {{ item.data?.classNum || '未设置班级' }} · {{ item.data?.grade || '未设置年级' }}
-              </view>
-            </view>
-          </view>
-          <view class="ios-divider" style="margin-left: 28rpx;" />
-          <view class="flex gap-3 px-4 pb-4 pt-3">
-            <button class="ios-btn ios-btn--secondary flex-1" style="padding: 18rpx 18rpx; font-size: 28rpx;" @click="viewDetail(item.data)">
-              查看
-            </button>
-            <button
-              class="ios-btn flex-1"
-              :class="item.isChose ? 'ios-btn--primary' : (item.finalTeacher && item.finalTeacher !== item.teacherId ? 'ios-btn--secondary' : 'ios-btn--secondary')"
-              style="padding: 18rpx 18rpx; font-size: 28rpx;"
-              :disabled="item.finalTeacher.length > 0 && item.finalTeacher !== item.teacherId"
-              @click="toggleSelect(item)"
-            >
-              {{ item.finalTeacher === item.teacherId ? '已选' : (item.finalTeacher.length > 0 && item.finalTeacher !== item.teacherId) ? '被选走' : '选择' }}
-            </button>
-          </view>
-        </view>
-      </template>
+      </view>
     </scroll-view>
 
     <!-- 老师信息表单弹层 -->
