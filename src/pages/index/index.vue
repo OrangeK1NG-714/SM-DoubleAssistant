@@ -34,6 +34,7 @@ const endedList = ref<Array<any>>([])
 // console.log(ongoingList.value)
 // console.log(endedList.value)
 
+const isEntering = ref(false)
 const selectedActivity = ref<any | null>(null)
 
 function formatDateRange(start: string, end: string) {
@@ -132,30 +133,40 @@ function handleLogout() {
 }
 
 async function enterSystem(id: string) {
-  uni.showToast({ title: '进入中…', icon: 'none' })
-  if (useStore.userInfo.role === 'student') {
-    const res = await isStudentInActivity(id, useStore.userInfo.username)
-    useStore.setActivityId(id)
-    if (res.code === 200) {
-      uni.navigateTo({
-        url: '/pages/s_choose/index',
-      })
+  if (isEntering.value) return
+  isEntering.value = true
+  try {
+    uni.showToast({ title: '进入中…', icon: 'none' })
+    if (useStore.userInfo.role === 'student') {
+      const res = await isStudentInActivity(id, useStore.userInfo.username)
+      useStore.setActivityId(id)
+      if (res.code === 200) {
+        uni.navigateTo({
+          url: '/pages/s_choose/index',
+        })
+      }
+      else {
+        uni.showToast({ title: '您不在此活动中！(有疑问请联系管理员)', icon: 'none' })
+      }
     }
-    else {
-      uni.showToast({ title: '您不在此活动中！(有疑问请联系管理员)', icon: 'none' })
+    else if (useStore.userInfo.role === 'teacher') {
+      const res = await isTeacherInActivity(id, useStore.userInfo.username)
+      useStore.setActivityId(id)
+      if (res.code === 200) {
+        uni.navigateTo({
+          url: '/pages/t_choose/index',
+        })
+      }
+      else {
+        uni.showToast({ title: '您不在此活动中！(有疑问请联系管理员)', icon: 'none' })
+      }
     }
   }
-  else if (useStore.userInfo.role === 'teacher') {
-    const res = await isTeacherInActivity(id, useStore.userInfo.username)
-    useStore.setActivityId(id)
-    if (res.code === 200) {
-      uni.navigateTo({
-        url: '/pages/t_choose/index',
-      })
-    }
-    else {
-      uni.showToast({ title: '您不在此活动中！(有疑问请联系管理员)', icon: 'none' })
-    }
+  catch (error) {
+    uni.showToast({ title: '进入失败，请重试', icon: 'none' })
+  }
+  finally {
+    isEntering.value = false
   }
 }
 
@@ -182,6 +193,7 @@ safeAreaInsets = systemInfo.safeAreaInsets
 
 onLoad(async () => {
   try {
+  uni.showLoading({ title: '加载中...' })
   const res: any = await getActivityList()
 
   if (useStore.userInfo?.role === 'student') {
@@ -228,6 +240,9 @@ onLoad(async () => {
   }
   catch (error) {
     uni.showToast({ title: '数据加载失败', icon: 'none' })
+  }
+  finally {
+    uni.hideLoading()
   }
 })
 </script>

@@ -121,13 +121,13 @@ async function handleLogin() {
 
       if (role === 'student' && resUserInfo.isEmpty === 0) {
         // 跳转页面
-        uni.navigateTo({
+        uni.reLaunch({
           url: '/pages/userMsg/index',
         })
       }
       else {
         // 跳转页面
-        uni.navigateTo({
+        uni.reLaunch({
           url: '/pages/index/index',
         })
       }

@@ -23,7 +23,7 @@ const isProgressPage = ref(false)
 
 // 导航到选择页面
 function navigateToProgress() {
-  uni.navigateTo({ url: '/pages/s_choose/index' })
+  uni.redirectTo({ url: '/pages/s_choose/index' })
 }
 
 // 导航到我的志愿
@@ -36,13 +36,14 @@ function navigateToMyChoices() {
 }
 
 function navigateHome() {
-  uni.navigateTo({
+  uni.redirectTo({
     url: '/pages/index/index',
   })
 }
 
 onLoad(async () => {
   try {
+    uni.showLoading({ title: '加载中...' })
     const res: any = await getChooseCountWithActivityId(userStore.userInfo.activityId, userStore.userInfo.username)
     if (res.length === 0) {
       uni.showToast({
@@ -70,6 +71,9 @@ onLoad(async () => {
   }
   catch (error) {
     uni.showToast({ title: '数据加载失败', icon: 'none' })
+  }
+  finally {
+    uni.hideLoading()
   }
 })
 </script>

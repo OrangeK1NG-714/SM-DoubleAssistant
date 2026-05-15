@@ -41,6 +41,7 @@ const secondChoseStudentList = ref<any[]>([])
 const thirdList = ref<any[]>([])
 const thirdChoseStudentList = ref<any[]>([])
 const dialogVisible = ref(false)
+const isToggling = ref(false)
 
 const currentStudent = ref<any>(null)
 // 已选择人数
@@ -54,22 +55,31 @@ const navItems = [
 ]
 
 onLoad(async () => {
-  const res: any = await getChooseCount(userStore.userInfo.username, userStore.userInfo.activityId)
-  await categorizeByPriority(res)
-  firstChoseStudentList.value = firstList.value.filter(item => item.finalTeacher === item.teacherId)
-  secondChoseStudentList.value = secondList.value.filter(item => item.finalTeacher === item.teacherId)
-  thirdChoseStudentList.value = thirdList.value.filter(item => item.finalTeacher === item.teacherId)
-  // 计算已选择人数
-  selectedNum.value = firstChoseStudentList.value.length + secondChoseStudentList.value.length + thirdChoseStudentList.value.length
+  try {
+    uni.showLoading({ title: '加载中...' })
+    const res: any = await getChooseCount(userStore.userInfo.username, userStore.userInfo.activityId)
+    await categorizeByPriority(res)
+    firstChoseStudentList.value = firstList.value.filter(item => item.finalTeacher === item.teacherId)
+    secondChoseStudentList.value = secondList.value.filter(item => item.finalTeacher === item.teacherId)
+    thirdChoseStudentList.value = thirdList.value.filter(item => item.finalTeacher === item.teacherId)
+    // 计算已选择人数
+    selectedNum.value = firstChoseStudentList.value.length + secondChoseStudentList.value.length + thirdChoseStudentList.value.length
 
-  const maxSelectedNum: any = await getMaxSelectNum(userStore.userInfo.username, userStore.userInfo.activityId)
-  userStore.userInfo.maxSelectNum = maxSelectedNum.maxSelectNum
+    const maxSelectedNum: any = await getMaxSelectNum(userStore.userInfo.username, userStore.userInfo.activityId)
+    userStore.userInfo.maxSelectNum = maxSelectedNum.maxSelectNum
 
-  // 加载时间数据
-  const teacherActivityList: any = await getActivityList()
-  thisActivity.value = teacherActivityList.find(item => item._id === userStore.userInfo.activityId)
+    // 加载时间数据
+    const teacherActivityList: any = await getActivityList()
+    thisActivity.value = teacherActivityList.find(item => item._id === userStore.userInfo.activityId)
 
-  formattedDate.value = formatDate(new Date())
+    formattedDate.value = formatDate(new Date())
+  }
+  catch (error) {
+    uni.showToast({ title: '数据加载失败', icon: 'none' })
+  }
+  finally {
+    uni.hideLoading()
+  }
 })
 
 function formatDate(date: Date): string {
@@ -234,104 +244,113 @@ function hideTeacherForm() {
 }
 
 async function toggleSelect(item: any) {
-  // 检查当前是否在允许选择的时间范围内
-  const currentTime = new Date().getTime()
-  let isInTime = false
-  const targetTab = item.order === 1 ? 'first' : item.order === 2 ? 'second' : 'third'
-
-  if (targetTab === 'first' && thisActivity.value) {
-    const start = new Date(thisActivity.value.firstChooseStartDate).getTime()
-    const end = new Date(thisActivity.value.firstChooseEndDate).getTime()
-    isInTime = currentTime >= start && currentTime <= end
-  }
-  else if (targetTab === 'second' && thisActivity.value) {
-    const start = new Date(thisActivity.value.secondChooseStartDate).getTime()
-    const end = new Date(thisActivity.value.secondChooseEndDate).getTime()
-    isInTime = currentTime >= start && currentTime <= end
-  }
-  else if (targetTab === 'third' && thisActivity.value) {
-    const start = new Date(thisActivity.value.thirdChooseStartDate).getTime()
-    const end = new Date(thisActivity.value.thirdChooseEndDate).getTime()
-    isInTime = currentTime >= start && currentTime <= end
-  }
-
-  // 如果没有活动数据，默认允许操作（防止系统出错时无法操作）
-  if (!thisActivity.value) {
-    isInTime = true
-  }
-
-  if (!isInTime) {
-    uni.showToast({
-      title: `不在${targetTab === 'first' ? '第一' : targetTab === 'second' ? '第二' : '第三'}志愿选择时间内`,
-      icon: 'none',
-      duration: 2000,
-    })
-    return
-  }
-
+  if (isToggling.value) return
+  isToggling.value = true
   try {
-    if (item.isChose) {
-      const confirmCancel = await new Promise<boolean>((resolve) => {
-        uni.showModal({
-          title: '确认取消',
-          content: `确定不再选择学生「${item.data?.name || item.studentId}」吗？`,
-          confirmText: '确定',
-          cancelText: '再想想',
-          success: (res) => {
-            resolve(!!res.confirm)
-          },
-          fail: () => {
-            resolve(false)
-          },
-        })
-      })
+    // 检查当前是否在允许选择的时间范围内
+    const currentTime = new Date().getTime()
+    let isInTime = false
+    const targetTab = item.order === 1 ? 'first' : item.order === 2 ? 'second' : 'third'
 
-      if (!confirmCancel)
-        return
-      const res = await cancelSelect({
-        studentId: item.studentId,
-        teacherId: userStore.userInfo.username,
-        activityId: item.activityId,
-      })
-      item.isChose = false
-      item.finalTeacher = '' // 清空最终选择的老师
-      selectedNum.value--
+    if (targetTab === 'first' && thisActivity.value) {
+      const start = new Date(thisActivity.value.firstChooseStartDate).getTime()
+      const end = new Date(thisActivity.value.firstChooseEndDate).getTime()
+      isInTime = currentTime >= start && currentTime <= end
     }
-    else {
-      // 判断当前选择人数是否小于最大允许人数
-      if (selectedNum.value >= userStore.userInfo.maxSelectNum) {
-        uni.showToast({
-          title: `已达到最大选择人数限制(${userStore.userInfo.maxSelectNum}人)`,
-          icon: 'none',
+    else if (targetTab === 'second' && thisActivity.value) {
+      const start = new Date(thisActivity.value.secondChooseStartDate).getTime()
+      const end = new Date(thisActivity.value.secondChooseEndDate).getTime()
+      isInTime = currentTime >= start && currentTime <= end
+    }
+    else if (targetTab === 'third' && thisActivity.value) {
+      const start = new Date(thisActivity.value.thirdChooseStartDate).getTime()
+      const end = new Date(thisActivity.value.thirdChooseEndDate).getTime()
+      isInTime = currentTime >= start && currentTime <= end
+    }
+
+    // 如果没有活动数据，默认允许操作（防止系统出错时无法操作）
+    if (!thisActivity.value) {
+      isInTime = true
+    }
+
+    if (!isInTime) {
+      uni.showToast({
+        title: `不在${targetTab === 'first' ? '第一' : targetTab === 'second' ? '第二' : '第三'}志愿选择时间内`,
+        icon: 'none',
+        duration: 2000,
+      })
+      return
+    }
+
+    try {
+      if (item.isChose) {
+        const confirmCancel = await new Promise<boolean>((resolve) => {
+          uni.showModal({
+            title: '确认取消',
+            content: `确定不再选择学生「${item.data?.name || item.studentId}」吗？`,
+            confirmText: '确定',
+            cancelText: '再想想',
+            success: (res) => {
+              resolve(!!res.confirm)
+            },
+            fail: () => {
+              resolve(false)
+            },
+          })
         })
-        return
+
+        if (!confirmCancel)
+          return
+        const res = await cancelSelect({
+          studentId: item.studentId,
+          teacherId: userStore.userInfo.username,
+          activityId: item.activityId,
+        })
+        item.isChose = false
+        item.finalTeacher = '' // 清空最终选择的老师
+        selectedNum.value--
+      }
+      else {
+        // 判断当前选择人数是否小于最大允许人数
+        if (selectedNum.value >= userStore.userInfo.maxSelectNum) {
+          uni.showToast({
+            title: `已达到最大选择人数限制(${userStore.userInfo.maxSelectNum}人)`,
+            icon: 'none',
+          })
+          return
+        }
+
+        const res = await selectStudent({
+          studentId: item.studentId,
+          teacherId: item.teacherId,
+          activityId: item.activityId,
+          data: item.data,
+          order: item.order,
+        })
+
+        item.isChose = true
+        item.finalTeacher = userStore.userInfo.username // 设置为当前老师
+        selectedNum.value++
       }
 
-      const res = await selectStudent({
+      // 重新计算三个志愿学生列表，确保UI显示的数量能够实时更新
+      firstChoseStudentList.value = firstList.value.filter(item => item.finalTeacher === item.teacherId)
+      secondChoseStudentList.value = secondList.value.filter(item => item.finalTeacher === item.teacherId)
+      thirdChoseStudentList.value = thirdList.value.filter(item => item.finalTeacher === item.teacherId)
+
+      const updateRes = await updateChoose({
         studentId: item.studentId,
         teacherId: item.teacherId,
         activityId: item.activityId,
-        data: item.data,
-        order: item.order,
       })
-
-      item.isChose = true
-      item.finalTeacher = userStore.userInfo.username // 设置为当前老师
-      selectedNum.value++
     }
-
-    // 重新计算三个志愿学生列表，确保UI显示的数量能够实时更新
-    firstChoseStudentList.value = firstList.value.filter(item => item.finalTeacher === item.teacherId)
-    secondChoseStudentList.value = secondList.value.filter(item => item.finalTeacher === item.teacherId)
-    thirdChoseStudentList.value = thirdList.value.filter(item => item.finalTeacher === item.teacherId)
+    catch (error) {
+      uni.showToast({ title: '操作失败，请重试', icon: 'none' })
+    }
   }
-  catch (error) {
+  finally {
+    isToggling.value = false
   }
-  const updateRes = await updateChoose({
-    studentId: item.studentId,
-    teacherId: item.teacherId,
-    activityId: item.activityId,
-  })
 }
 
 function toggleSubmitCard() {
@@ -425,7 +444,7 @@ async function categorizeByPriority(res: any) {
 
 function handleTabChange(e: any) {
   if (e !== 't_choose') {
-    uni.navigateTo({
+    uni.redirectTo({
       url: `/pages/${e}/index`,
     })
   }

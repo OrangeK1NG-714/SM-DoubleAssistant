@@ -60,6 +60,12 @@ async function handleResetPassword() {
   }
   // 调用重置密码API
   // ...
+  const { confirm } = await uni.showModal({
+    title: '确认重置',
+    content: '确定要重置密码吗？',
+  })
+  if (!confirm) return
+
   try {
     isSubmitting.value = true
     uni.showLoading({ title: '提交中…' })
@@ -69,10 +75,10 @@ async function handleResetPassword() {
     })
     if (res.code === 200) {
       uni.showToast({ title: '密码重置成功', icon: 'success' })
+      uni.reLaunch({
+        url: '/pages/login/login',
+      })
     }
-    uni.navigateTo({
-      url: '/pages/login/login',
-    })
   }
   catch (error) {
     uni.showToast({ title: `密码重置失败,${error?.data?.msg || '请稍后重试'}`, icon: 'none' })

@@ -55,7 +55,7 @@ function viewDetail(item: any) {
 }
 function handleTabChange(e: any) {
   if (e !== 'myStudent') {
-    uni.navigateTo({
+    uni.redirectTo({
       url: `/pages/${e}/index`,
     })
   }
@@ -64,14 +64,23 @@ function handleCloseDialog() {
   dialogVisible.value = false
 }
 onLoad(async () => {
-  const res: any = await getSelectState({
-    teacherId: userStore.userInfo.username,
-    activityId: userStore.userInfo.activityId,
-  })
-  // 按 order 排序：1111, 2222, 3333
-  studentList.value = res.sort(
-    (a: any, b: any) => (a.order || 999) - (b.order || 999),
-  )
+  try {
+    uni.showLoading({ title: '加载中...' })
+    const res: any = await getSelectState({
+      teacherId: userStore.userInfo.username,
+      activityId: userStore.userInfo.activityId,
+    })
+    // 按 order 排序：1111, 2222, 3333
+    studentList.value = res.sort(
+      (a: any, b: any) => (a.order || 999) - (b.order || 999),
+    )
+  }
+  catch (error) {
+    uni.showToast({ title: '数据加载失败', icon: 'none' })
+  }
+  finally {
+    uni.hideLoading()
+  }
 })
 </script>
 

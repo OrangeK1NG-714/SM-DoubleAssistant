@@ -80,11 +80,13 @@ const formData = ref<StudentForm>({
 })
 
 const showAgreement = ref(false)
-const showDataUsageAgreement = ref(false)
 const focusedField = ref<string | null>(null)
 const submitting = ref(false)
+const isUploading = ref(false)
 
 function uploadResume() {
+  if (isUploading.value) return
+  isUploading.value = true
   // 上传简历逻辑
   uni.chooseImage({
     count: 1,
@@ -98,16 +100,19 @@ function uploadResume() {
       if (!studentId) {
         uni.showToast({ title: '学生ID获取失败', icon: 'error' })
         console.error('学生ID为空')
+        isUploading.value = false
         return
       }
       if (!fileName) {
         uni.showToast({ title: '文件名获取失败', icon: 'error' })
         console.error('文件名为空')
+        isUploading.value = false
         return
       }
       if (!tempFilePath) {
         uni.showToast({ title: '文件路径获取失败', icon: 'error' })
         console.error('文件路径为空')
+        isUploading.value = false
         return
       }
 
@@ -120,16 +125,23 @@ function uploadResume() {
           studentId,
           filePath: tempFilePath,
         },
-        success(res) {
-          if (res.statusCode === 200) {
+        success(uploadRes) {
+          if (uploadRes.statusCode === 200) {
             uni.showToast({
               title: '上传成功',
               icon: 'success',
             })
             formData.value.resumeName = fileName
           }
+          isUploading.value = false
+        },
+        fail() {
+          isUploading.value = false
         },
       })
+    },
+    fail() {
+      isUploading.value = false
     },
   })
 }
@@ -146,23 +158,6 @@ function submitForm() {
   // showDataUsageAgreement.value = true
 }
 
-function handleDataUsageAgree() {
-  showDataUsageAgreement.value = false
-
-  if (!validateForm()) {
-    return
-  }
-
-  writeStdInfo(formData.value).then(() => {
-    uni.showToast({
-      title: '提交成功',
-      icon: 'success',
-    })
-    uni.navigateTo({ url: '/pages/index/index' })
-  }).catch(() => {
-    uni.showToast({ title: '提交失败，请重试', icon: 'none' })
-  })
-}
 
 function validateForm(): boolean {
   const requiredFields: (keyof StudentForm)[] = [
@@ -236,17 +231,6 @@ function bindGenderChange(e: any) {
   formData.value.gender = genderArray[e.detail.value]
 }
 
-function bindClassInput(e) {
-  formData.value.classNum = e.detail.value
-}
-
-function bindPhoneInput(e) {
-  formData.value.phone = e.detail.value
-}
-
-function bindGPAInput(e) {
-  formData.value.gpa = e.detail.value
-}
 
 function bindDirectionChange(e) {
   formData.value.direction = directionArray[e.detail.value]
@@ -276,19 +260,16 @@ async function handleAgree() {
       title: '提交成功',
       icon: 'success',
     })
-    uni.navigateTo({ url: '/pages/index/index' })
+    uni.redirectTo({ url: '/pages/index/index' })
+  }
+  catch {
+    uni.showToast({ title: '提交失败，请重试', icon: 'none' })
   }
   finally {
     submitting.value = false
   }
 }
 
-function viewFullAgreement() {
-  // 查看完整协议逻辑
-  // uni.navigateTo({
-  //   url: '/pages/agreement/index',
-  // })
-}
 </script>
 
 <template>
@@ -537,7 +518,6 @@ function viewFullAgreement() {
           <view
             class="mb-4 text-[26rpx]"
             style="color: var(--ios-blue)"
-            @tap="viewFullAgreement"
           >
             查看完整条款
           </view>
