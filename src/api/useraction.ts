@@ -1,4 +1,3 @@
-import axios from 'axios'
 // import type { IActivityList } from './types/userAction'
 import { getEnvBaseUrl } from '@/utils'
 import { http } from '@/utils/http'
@@ -88,11 +87,7 @@ export function getMaxChooseNum(activityId: string, teacherId: string) {
  * 获取导师简历图片
  */
 export function getTeacherResume(teacherId: string) {
-  // 修改后
-  return axios.get(`${localhost}/api/teacher/getTeacherResume`, {
-    params: {
-      teacherId,
-    },
-    responseType: 'blob', // 设置响应类型为blob
+  return uni.downloadFile({
+    url: `${localhost}/api/teacher/getTeacherResume?teacherId=${teacherId}`,
   })
 }

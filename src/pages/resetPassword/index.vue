@@ -16,10 +16,6 @@ defineOptions({
   name: 'Home',
 })
 
-onLoad(() => {
-  const useStore = useUserStore()
-  console.log(useStore.userInfo)
-})
 // 获取屏幕边界到安全区域距离
 let safeAreaInsets
 let systemInfo
@@ -45,49 +41,10 @@ safeAreaInsets = systemInfo.safeAreaInsets
 
 // 密码重置相关状态
 const resetUsername = ref('')
-const verifyCode = ref('')
 const newPassword = ref('')
 const confirmPassword = ref('')
-const countDown = ref(0)
-const isSending = ref(false)
 const isSubmitting = ref(false)
-let countdownTimer: ReturnType<typeof setInterval> | null = null
 const focusedField = ref<string | null>(null)
-
-function cleanupTimer() {
-  if (countdownTimer) {
-    clearInterval(countdownTimer)
-    countdownTimer = null
-  }
-}
-
-onUnload(() => {
-  cleanupTimer()
-})
-
-// 发送验证码
-async function sendVerifyCode() {
-  if (!resetUsername.value) {
-    uni.showToast({ title: '请输入账号', icon: 'none' })
-    return
-  }
-  if (isSending.value || countDown.value > 0)
-    return
-  // 调用发送验证码API
-  // ...
-  isSending.value = true
-  cleanupTimer()
-  countDown.value = 60
-  countdownTimer = setInterval(() => {
-    countDown.value--
-    if (countDown.value <= 0) {
-      cleanupTimer()
-    }
-  }, 1000)
-  setTimeout(() => {
-    isSending.value = false
-  }, 300)
-}
 
 // 重置密码
 async function handleResetPassword() {
@@ -110,30 +67,21 @@ async function handleResetPassword() {
       username: resetUsername.value,
       password: newPassword.value,
     })
-    console.log(res)
     if (res.code === 200) {
       uni.showToast({ title: '密码重置成功', icon: 'success' })
     }
     uni.navigateTo({
-      url: '/pages/login/index',
+      url: '/pages/login/login',
     })
   }
   catch (error) {
-    console.log(error)
-
-    uni.showToast({ title: `密码重置失败,${error.data.msg}`, icon: 'none' })
+    uni.showToast({ title: `密码重置失败,${error?.data?.msg || '请稍后重试'}`, icon: 'none' })
   }
   finally {
     isSubmitting.value = false
     uni.hideLoading()
   }
 }
-// 测试 uni API 自动引入
-onLoad(() => {
-  console.log()
-})
-
-console.log('index')
 </script>
 
 <template>
@@ -162,30 +110,6 @@ console.log('index')
               @focus="focusedField = 'username'"
               @blur="focusedField = null"
             >
-          </view>
-        </view>
-        <view class="ios-divider" style="margin-left: 28rpx;" />
-        <view class="ios-cell" :class="{ 'ios-cell--focused': focusedField === 'code' }">
-          <view class="ios-cell__label">
-            验证码
-          </view>
-          <view class="ios-cell__content flex items-center justify-between">
-            <input
-              v-model="verifyCode"
-              class="ios-input"
-              placeholder="选填"
-              :disabled="isSubmitting"
-              @focus="focusedField = 'code'"
-              @blur="focusedField = null"
-            >
-            <button
-              class="ios-btn ios-btn--secondary"
-              style="padding: 14rpx 18rpx; font-size: 26rpx; margin-left: 12rpx;"
-              :disabled="isSubmitting || isSending || countDown > 0"
-              @click="sendVerifyCode"
-            >
-              {{ countDown > 0 ? `${countDown}s` : '发送' }}
-            </button>
           </view>
         </view>
         <view class="ios-divider" style="margin-left: 28rpx;" />
