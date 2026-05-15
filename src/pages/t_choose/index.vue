@@ -11,12 +11,10 @@
 import { getStudentMsg } from '@/api/stdInfo'
 import { cancelSelect, getMaxSelectNum, getSelectState, selectStudent, updateChoose } from '@/api/teaInfo'
 import { getActivityList, getChooseCount, getMaxChooseNum } from '@/api/useraction'
+import { IOS_BLUE } from '@/constants/theme'
 import { useUserStore } from '@/store/user'
 
-const IOS_BLUE = '#0A84FF'
-
 const userStore = useUserStore()
-console.log(userStore.userInfo)
 
 const tabbar = ref('t_choose')// 底部导航栏
 
@@ -57,27 +55,21 @@ const navItems = [
 
 onLoad(async () => {
   const res: any = await getChooseCount(userStore.userInfo.username, userStore.userInfo.activityId)
-  console.log(res, 'test')
   await categorizeByPriority(res)
   firstChoseStudentList.value = firstList.value.filter(item => item.finalTeacher === item.teacherId)
   secondChoseStudentList.value = secondList.value.filter(item => item.finalTeacher === item.teacherId)
   thirdChoseStudentList.value = thirdList.value.filter(item => item.finalTeacher === item.teacherId)
   // 计算已选择人数
   selectedNum.value = firstChoseStudentList.value.length + secondChoseStudentList.value.length + thirdChoseStudentList.value.length
-  console.log(selectedNum.value, 'selectedNum')
 
   const maxSelectedNum: any = await getMaxSelectNum(userStore.userInfo.username, userStore.userInfo.activityId)
-  console.log(maxSelectedNum, 'maxSelectedNum')
   userStore.userInfo.maxSelectNum = maxSelectedNum.maxSelectNum
-  console.log(userStore.userInfo.maxSelectNum, 'maxSelectNum')
 
   // 加载时间数据
   const teacherActivityList: any = await getActivityList()
   thisActivity.value = teacherActivityList.find(item => item._id === userStore.userInfo.activityId)
-  console.log(thisActivity.value, 'thisActivity')
 
   formattedDate.value = formatDate(new Date())
-  console.log(formattedDate.value, 'formattedDate.value')
 })
 
 function formatDate(date: Date): string {
@@ -188,7 +180,6 @@ function calculateScrollHeight() {
 
 function switchTab(e: any) {
   const targetTab = e.currentTarget.dataset.tab
-  console.log(targetTab)
 
   // 检查当前时间是否在允许选择的时间范围内
   const currentTime = new Date().getTime()
@@ -228,8 +219,6 @@ function switchTab(e: any) {
 }
 
 function viewDetail(data: any) {
-  console.log(data)
-
   if (data) {
     dialogVisible.value = true
     currentStudent.value = data
@@ -245,8 +234,6 @@ function hideTeacherForm() {
 }
 
 async function toggleSelect(item: any) {
-  console.log(item)
-
   // 检查当前是否在允许选择的时间范围内
   const currentTime = new Date().getTime()
   let isInTime = false
@@ -306,15 +293,11 @@ async function toggleSelect(item: any) {
         teacherId: userStore.userInfo.username,
         activityId: item.activityId,
       })
-      console.log(item.studentId, item.teacherId, item.activityId)
-      console.log(res)
       item.isChose = false
       item.finalTeacher = '' // 清空最终选择的老师
       selectedNum.value--
     }
     else {
-      console.log(userStore.userInfo.maxSelectNum)
-
       // 判断当前选择人数是否小于最大允许人数
       if (selectedNum.value >= userStore.userInfo.maxSelectNum) {
         uni.showToast({
@@ -332,7 +315,6 @@ async function toggleSelect(item: any) {
         order: item.order,
       })
 
-      console.log(res)
       item.isChose = true
       item.finalTeacher = userStore.userInfo.username // 设置为当前老师
       selectedNum.value++
@@ -344,35 +326,16 @@ async function toggleSelect(item: any) {
     thirdChoseStudentList.value = thirdList.value.filter(item => item.finalTeacher === item.teacherId)
   }
   catch (error) {
-    console.log(error)
   }
   const updateRes = await updateChoose({
     studentId: item.studentId,
     teacherId: item.teacherId,
     activityId: item.activityId,
   })
-  console.log(updateRes)
-}
-
-function updateLocalData(_id: string, newStatus: boolean) {
-  const index = majorList.value.findIndex(item => item._id === _id)
-  if (index !== -1) {
-    majorList.value[index].isChoose = newStatus
-  }
 }
 
 function toggleSubmitCard() {
   showSubmitCard.value = !showSubmitCard.value
-}
-
-function changePriority(e: any) {
-  const index = e.currentTarget.dataset.index
-  const value = Number.parseInt(e.detail.value)
-  priority.value[index] = value
-}
-
-function preventTouchMove() {
-
 }
 
 function closeCard() {
@@ -426,7 +389,6 @@ async function categorizeByPriority(res: any) {
   })
 
   const processedData = await Promise.all(request)
-  console.log(processedData)
 
   processedData.forEach((item) => {
     // // 确保数据结构稳定
@@ -459,7 +421,6 @@ async function categorizeByPriority(res: any) {
   firstList.value = firstListTemp
   secondList.value = secondListTemp
   thirdList.value = thirdListTemp
-  console.log(firstListTemp, secondListTemp, thirdListTemp)
 }
 
 function handleTabChange(e: any) {
@@ -647,7 +608,7 @@ function handleTabChange(e: any) {
     <!-- 弹出的卡片 -->
     <view
       class="submit-card fixed left-0 right-0 z-1000 rounded-t-6 bg-white px-8 py-6 shadow-md transition-all duration-300"
-      :class="showSubmitCard ? 'bottom-0' : 'bottom--100%'" @touchmove.prevent="preventTouchMove"
+      :class="showSubmitCard ? 'bottom-0' : 'bottom--100%'" @touchmove.prevent
     >
       <view class="card-header mb-8 flex items-center justify-between">
         <text class="student-list-text flex-1 text-left text-xl font-bold">

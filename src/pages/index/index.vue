@@ -14,16 +14,14 @@ import { ref } from 'vue'
 import { isStudentInActivity } from '@/api/stdInfo'
 import { isTeacherInActivity } from '@/api/teaInfo'
 import { getActivityList, getUserDetail } from '@/api/useraction'
+import { IOS_BLUE } from '@/constants/theme'
 import { useUserStore } from '@/store/user'
 
 defineOptions({
   name: 'Home',
 })
 
-const IOS_BLUE = '#0A84FF'
-
 const useStore = useUserStore()
-console.log(useStore.userInfo)
 
 const nowDate = ref(new Date())
 // console.log(nowDate)
@@ -135,11 +133,8 @@ function handleLogout() {
 
 async function enterSystem(id: string) {
   uni.showToast({ title: '进入中…', icon: 'none' })
-  console.log(id)
-  console.log(useStore.userInfo.username)
   if (useStore.userInfo.role === 'student') {
     const res = await isStudentInActivity(id, useStore.userInfo.username)
-    console.log(res)
     useStore.setActivityId(id)
     if (res.code === 200) {
       uni.navigateTo({
@@ -152,7 +147,6 @@ async function enterSystem(id: string) {
   }
   else if (useStore.userInfo.role === 'teacher') {
     const res = await isTeacherInActivity(id, useStore.userInfo.username)
-    console.log(res)
     useStore.setActivityId(id)
     if (res.code === 200) {
       uni.navigateTo({
@@ -187,8 +181,8 @@ safeAreaInsets = systemInfo.safeAreaInsets
 // #endif
 
 onLoad(async () => {
+  try {
   const res: any = await getActivityList()
-  console.log(res)
 
   if (useStore.userInfo?.role === 'student') {
     // 先检查用户是否在每个活动中
@@ -196,18 +190,14 @@ onLoad(async () => {
       return await isStudentInActivity(item._id, useStore.userInfo?.username)
     })
     const asd = await Promise.all(promises)
-    console.log(asd)
 
     // 过滤出用户参与的活动
     const userActivities = res.filter((item, index) => {
       return asd[index].code === 200
     })
-    console.log('用户参与的活动:', userActivities)
 
     // 再根据时间分类活动
     classifyActivities(userActivities as any)
-    console.log('进行中的活动:', ongoingList.value)
-    console.log('已结束的活动:', endedList.value)
   }
   else {
     // 先检查用户是否在每个活动中
@@ -215,23 +205,18 @@ onLoad(async () => {
       return await isTeacherInActivity(item._id, useStore.userInfo?.username)
     })
     const asd = await Promise.all(promises)
-    console.log(asd)
 
     // 过滤出用户参与的活动
     const userActivities = res.filter((item, index) => {
       return asd[index].code === 200
     })
-    console.log('用户参与的活动:', userActivities)
 
     // 再根据时间分类活动
     classifyActivities(userActivities as any)
-    console.log('进行中的活动:', ongoingList.value)
-    console.log('已结束的活动:', endedList.value)
   }
 
   // 从服务器查询用户信息
   const userDetail: any = await getUserDetail(useStore.userInfo?.username, useStore.userInfo?.role)
-  console.log(userDetail)
   // 新增赋值逻辑
   role.value = useStore.userInfo?.role
   if (role.value === 'student') {
@@ -239,6 +224,10 @@ onLoad(async () => {
   }
   else if (role.value === 'teacher') {
     name.value = userDetail.data.name
+  }
+  }
+  catch (error) {
+    uni.showToast({ title: '数据加载失败', icon: 'none' })
   }
 })
 </script>

@@ -13,18 +13,13 @@
 <script lang="ts" setup>
 import { getUserInfo, login } from '@/api/login'
 import { saveOpenid } from '@/api/stdInfo'
+import { IOS_BLUE } from '@/constants/theme'
 import { useUserStore } from '@/store/user'
 
 defineOptions({
   name: 'Home',
 })
 
-const IOS_BLUE = '#0A84FF'
-
-onLoad(() => {
-  const useStore = useUserStore()
-  console.log(useStore.userInfo)
-})
 // 获取屏幕边界到安全区域距离
 let safeAreaInsets
 let systemInfo
@@ -94,11 +89,6 @@ async function handleLogin() {
         refreshToken,
         expiresIn,
       } = res.data
-
-      console.log('[login] res.data:', JSON.stringify(res.data))
-      console.log('[login] accessToken:', accessToken)
-      console.log('[login] refreshToken:', refreshToken)
-
       // 兼容旧版本单token：后端可能只返回 token 字段
       const finalAccessToken = accessToken || (res.data as any).token
       const finalRefreshToken = refreshToken || (res.data as any).token
@@ -108,19 +98,9 @@ async function handleLogin() {
       // 设置双token（先同步存储到本地，确保后续请求能获取到）
       useStore.setTokens(finalAccessToken, finalRefreshToken, expiresIn)
 
-      // 验证token是否已存储
-      const storedToken = uni.getStorageSync('accessToken')
-      console.log(
-        '[login] after setTokens, storedToken:',
-        storedToken ? 'exists' : 'null',
-      )
-
       // 确保token已存储后再发起请求
       // 获取用户详细信息
-      console.log('[login] calling getUserInfo...')
       const resUserInfo = await getUserInfo(resUsername, role)
-      console.log(resUserInfo)
-      console.log(res)
 
       // 仅小程序端：登录成功后获取 openid 并上报后端
       // #ifdef MP-WEIXIN
@@ -132,7 +112,6 @@ async function handleLogin() {
             },
           )
           await saveOpenid(loginRes.code, resUsername)
-          console.log('[login] openid 上报成功')
         }
         catch (wxErr) {
           console.warn('[login] openid 上报失败（不影响登录）:', wxErr)
@@ -155,7 +134,6 @@ async function handleLogin() {
     }
   }
   catch (error) {
-    console.log(error)
     uni.showToast({ title: '登录失败，请稍后重试', icon: 'none' })
   }
   finally {
@@ -172,10 +150,6 @@ async function handleResetPassword() {
     url: '/pages/resetPassword/index',
   })
 }
-// 测试 uni API 自动引入
-onLoad(() => {
-  console.log()
-})
 </script>
 
 <template>

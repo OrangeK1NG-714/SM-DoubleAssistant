@@ -1,4 +1,5 @@
 import type { CustomRequestOptions } from '@/interceptors/request'
+import { TOKEN_EXPIRY_BUFFER_MS } from '@/constants/config'
 import { getEnvBaseUrl } from '@/utils'
 
 const localhost = getEnvBaseUrl()
@@ -145,21 +146,16 @@ function getValidAccessToken(): string | null {
   const accessToken = uni.getStorageSync('accessToken')
   const expiresAt = uni.getStorageSync('accessTokenExpiresAt')
 
-  console.log('[http] getValidAccessToken:', { accessToken: accessToken ? 'exists' : 'null', expiresAt })
-
   if (isInvalidTokenStr(accessToken) || !expiresAt) {
-    console.log('[http] no token or expiresAt, return null')
     return null
   }
 
   const now = Date.now()
   // 预留5分钟缓冲时间
-  if (expiresAt > now + 5 * 60 * 1000) {
-    console.log('[http] token is valid')
+  if (expiresAt > now + TOKEN_EXPIRY_BUFFER_MS) {
     return accessToken
   }
 
-  console.log('[http] token expired or will expire soon')
   return null
 }
 
@@ -177,27 +173,22 @@ function shouldRefreshToken(): boolean {
 
   const now = Date.now()
   // 5分钟内过期，需要刷新
-  return expiresAt > now && expiresAt < now + 5 * 60 * 1000
+  return expiresAt > now && expiresAt < now + TOKEN_EXPIRY_BUFFER_MS
 }
 
 export function http<T>(options: CustomRequestOptions) {
   return new Promise<IResData<T>>((resolve, reject) => {
-    console.log('[http] request:', options.url, 'requireAuth:', options.requireAuth)
-
     // 1. 检查是否需要认证
     if (options.requireAuth) {
       // 2. 获取有效的accessToken
       const accessToken = getValidAccessToken()
-      console.log('[http] accessToken from getValidAccessToken:', accessToken ? 'exists' : 'null')
 
       // 3. 如果没有有效token，检查是否需要刷新
       if (!accessToken) {
         const refreshTokenValue = uni.getStorageSync('refreshToken')
-        console.log('[http] no valid accessToken, refreshToken:', refreshTokenValue ? 'exists' : 'null')
 
         // 没有refreshToken，说明未登录
         if (isInvalidTokenStr(refreshTokenValue)) {
-          console.log('[http] no refreshToken, redirect to login')
           uni.redirectTo({ url: '/pages/login/login' })
           reject(new Error('未登录，请先登录'))
           return
@@ -206,13 +197,11 @@ export function http<T>(options: CustomRequestOptions) {
         // 有refreshToken，尝试刷新
         if (isRefreshing) {
           // 正在刷新中，加入队列等待
-          console.log('[http] token is refreshing, add to queue')
           requestQueue.push({ resolve, reject, options })
           return
         }
 
         // 开始刷新token
-        console.log('[http] start refreshing token')
         isRefreshing = true
         doRefreshToken()
           .then((newToken) => {

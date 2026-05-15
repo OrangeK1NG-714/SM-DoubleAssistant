@@ -5,15 +5,9 @@ import 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only'
 
 usePageAuth()
 
-onLaunch(() => {
-  console.log('App Launch')
-})
-onShow(() => {
-  console.log('App Show')
-})
-onHide(() => {
-  console.log('App Hide')
-})
+onLaunch(() => {})
+onShow(() => {})
+onHide(() => {})
 </script>
 
 <style lang="scss">
