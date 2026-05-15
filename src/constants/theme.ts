@@ -1,0 +1,3 @@
+export const IOS_BLUE = '#0A84FF'
+export const TEACHER_POPULARITY_HIGH = 36
+export const TEACHER_POPULARITY_MEDIUM = 18

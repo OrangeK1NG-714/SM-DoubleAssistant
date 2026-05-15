@@ -1,4 +1,5 @@
 import type { IUserInfoVo } from '@/api/types/login'
+import { DEFAULT_TOKEN_EXPIRY_MS, TOKEN_EXPIRY_BUFFER_MS } from '@/constants/config'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import {
@@ -66,7 +67,7 @@ export const useUserStore = defineStore(
     const setTokens = (accessToken: string, refreshToken: string, expiresIn?: number) => {
       const expiresAt = expiresIn
         ? Date.now() + expiresIn * 1000
-        : Date.now() + 2 * 60 * 60 * 1000 // 默认2小时
+        : Date.now() + DEFAULT_TOKEN_EXPIRY_MS
 
       tokens.value = {
         accessToken,
@@ -90,7 +91,7 @@ export const useUserStore = defineStore(
     const getValidAccessToken = (): string | null => {
       const now = Date.now()
       // 预留5分钟的缓冲时间
-      if (tokens.value.accessToken && tokens.value.accessTokenExpiresAt > now + 5 * 60 * 1000) {
+      if (tokens.value.accessToken && tokens.value.accessTokenExpiresAt > now + TOKEN_EXPIRY_BUFFER_MS) {
         return tokens.value.accessToken
       }
       return null
@@ -111,10 +112,6 @@ export const useUserStore = defineStore(
 
     const setActivityId = (activityId: string) => {
       userInfo.value.activityId = activityId
-    }
-
-    const getUserInfo = () => {
-
     }
 
     /**
