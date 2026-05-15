@@ -59,9 +59,10 @@ interface IWriteStdInfo {
   grade: string
   classNum: string
   phone: string
+  qq?: string
+  wechat?: string
   gpa: string
   direction: string
-  // resumeName: '',
 }
 /**
  * 写入学生信息
@@ -96,15 +97,16 @@ export function getStudentMsg(studentId: string) {
   }, undefined, { requireAuth: true })
 }
 
-interface IUpdatePassword {
+interface ISelfResetPassword {
   username: string
-  password: string
+  oldPassword: string
+  newPassword: string
 }
 /**
- *  修改学生密码
+ *  用户自助修改密码（无需登录token，需验证旧密码）
  */
-export function updateStdPassword(data: IUpdatePassword) {
-  return http.post(`${localhost}/api/admin/resetPassword`, data, undefined, undefined, { requireAuth: true })
+export function selfResetPassword(data: ISelfResetPassword) {
+  return http.post(`${localhost}/api/user/selfResetPassword`, data)
 }
 
 /**

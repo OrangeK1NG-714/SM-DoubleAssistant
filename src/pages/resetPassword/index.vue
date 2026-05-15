@@ -9,18 +9,18 @@
 </route>
 
 <script lang="ts" setup>
-import { updateStdPassword } from '@/api/stdInfo'
+import { selfResetPassword } from '@/api/stdInfo'
 import { useSafeArea } from '@/composables/useSafeArea'
-import { useUserStore } from '@/store/user'
 
 defineOptions({
-  name: 'Home',
+  name: 'ResetPassword',
 })
 
 const safeAreaInsets = useSafeArea()
 
 // 密码重置相关状态
 const resetUsername = ref('')
+const oldPassword = ref('')
 const newPassword = ref('')
 const confirmPassword = ref('')
 const isSubmitting = ref(false)
@@ -30,7 +30,7 @@ const focusedField = ref<string | null>(null)
 async function handleResetPassword() {
   if (isSubmitting.value)
     return
-  if (!resetUsername.value || !newPassword.value || !confirmPassword.value) {
+  if (!resetUsername.value || !oldPassword.value || !newPassword.value || !confirmPassword.value) {
     uni.showToast({ title: '请填写完整信息', icon: 'none' })
     return
   }
@@ -38,30 +38,30 @@ async function handleResetPassword() {
     uni.showToast({ title: '两次密码输入不一致', icon: 'none' })
     return
   }
-  // 调用重置密码API
-  // ...
+
   const { confirm } = await uni.showModal({
-    title: '确认重置',
-    content: '确定要重置密码吗？',
+    title: '确认修改',
+    content: '确定要修改密码吗？',
   })
   if (!confirm) return
 
   try {
     isSubmitting.value = true
     uni.showLoading({ title: '提交中…' })
-    const res = await updateStdPassword({
+    const res = await selfResetPassword({
       username: resetUsername.value,
-      password: newPassword.value,
+      oldPassword: oldPassword.value,
+      newPassword: newPassword.value,
     })
     if (res.code === 200) {
-      uni.showToast({ title: '密码重置成功', icon: 'success' })
+      uni.showToast({ title: '密码修改成功', icon: 'success' })
       uni.reLaunch({
         url: '/pages/login/login',
       })
     }
   }
   catch (error) {
-    uni.showToast({ title: `密码重置失败,${error?.data?.msg || '请稍后重试'}`, icon: 'none' })
+    uni.showToast({ title: `修改失败，${error?.data?.msg || '请稍后重试'}`, icon: 'none' })
   }
   finally {
     isSubmitting.value = false
@@ -81,7 +81,7 @@ async function handleResetPassword() {
       </view>
     </view>
 
-    <view class="px-5 pt-6 pb-10">
+    <view class="px-5 pb-10 pt-6">
       <view class="ios-card">
         <view class="ios-cell" :class="{ 'ios-cell--focused': focusedField === 'username' }">
           <view class="ios-cell__label">
@@ -95,6 +95,24 @@ async function handleResetPassword() {
               :cursor-spacing="20"
               :disabled="isSubmitting"
               @focus="focusedField = 'username'"
+              @blur="focusedField = null"
+            >
+          </view>
+        </view>
+        <view class="ios-divider" style="margin-left: 28rpx;" />
+        <view class="ios-cell" :class="{ 'ios-cell--focused': focusedField === 'old' }">
+          <view class="ios-cell__label">
+            原密码
+          </view>
+          <view class="ios-cell__content">
+            <input
+              v-model="oldPassword"
+              class="ios-input"
+              password
+              placeholder="请输入原密码"
+              :cursor-spacing="20"
+              :disabled="isSubmitting"
+              @focus="focusedField = 'old'"
               @blur="focusedField = null"
             >
           </view>
@@ -140,7 +158,7 @@ async function handleResetPassword() {
 
       <view class="mt-8">
         <button class="ios-btn ios-btn--primary w-full" :disabled="isSubmitting" @click="handleResetPassword">
-          {{ isSubmitting ? '提交中…' : '确认重置' }}
+          {{ isSubmitting ? '提交中…' : '确认修改' }}
         </button>
       </view>
     </view>

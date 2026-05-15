@@ -17,7 +17,7 @@ import { useSafeArea } from '@/composables/useSafeArea'
 import { useUserStore } from '@/store/user'
 
 defineOptions({
-  name: 'Home',
+  name: 'Login',
 })
 
 const safeAreaInsets = useSafeArea()
