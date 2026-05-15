@@ -20,15 +20,15 @@ import {
   getChooseCount,
   getChooseCountWithActivityId,
 } from '@/api/useraction'
+import { SUBSCRIBE_TEMPLATE_ID } from '@/constants/config'
+import { IOS_BLUE } from '@/constants/theme'
 import { useUserStore } from '@/store/user'
+import TeacherCard from '@/components/TeacherCard.vue'
 import { getEnvBaseUrl } from '@/utils'
 
 const store = useUserStore()
 
 const localhost = getEnvBaseUrl()
-
-const IOS_BLUE = '#0A84FF'
-const SUBSCRIBE_TEMPLATE_ID = 'eLfrwx8SgoCSv3vXzAQNUhdCXr69xg5mhMio_xFHd3U'
 
 // 数据定义
 const activeTab = ref('major') // 当前激活的选项卡
@@ -69,6 +69,18 @@ const showRecommendPopup = ref(false)
 const recommendLoading = ref(false)
 const recommendList = ref<IRecommendTeacherItem[]>([])
 const recommendError = ref('')
+
+const currentList = computed(() => {
+  if (activeTab.value === 'major') return majorList.value
+  if (activeTab.value === 'public') return publicList.value
+  return peopleList.value
+})
+
+const emptyText = computed(() => {
+  if (activeTab.value === 'major') return '暂无专业导师数据'
+  if (activeTab.value === 'public') return '暂无公共导师数据'
+  return '暂无校友导师数据'
+})
 
 // 计算滚动区域高度
 function calculateScrollHeight() {
@@ -199,8 +211,6 @@ function toggleSelect(teacherId: string) {
       priority.value.splice(priorityIndex, 1)
     }
   }
-
-  console.log('更新后的已选导师:', selectedMentors.value)
 }
 
 // 切换提交卡片显示状态
@@ -216,9 +226,7 @@ function closeCard() {
 // 改变志愿优先级
 function changePriority(e: any, index: number) {
   priority.value[index] = Number(e.detail.value) + 1
-  console.log(typeof e.detail.value)
 
-  console.log(priority.value)
   // 实时检查是否有重复
   duplicates.value = priority.value.filter(
     (p, i) => p !== undefined && priority.value.indexOf(p) !== i,
@@ -243,7 +251,6 @@ async function requestSubmitSubscribeMessage() {
     })
 
     const status = (result)[SUBSCRIBE_TEMPLATE_ID]
-    console.log('订阅消息授权结果:', result)
 
     if (status === 'accept') {
       uni.showToast({ title: '订阅授权成功', icon: 'none' })
@@ -320,11 +327,9 @@ async function handleSubmit() {
     return
   }
   const nowDate = new Date()
-  console.log(nowDate)
   const isIn
     = nowDate >= currentActivityTime.value.stdChooseStartDate
       && nowDate <= currentActivityTime.value.stdChooseEndDate
-  console.log(isIn)
   if (!isIn) {
     uni.showToast({
       title: '当前不在活动时间内',
@@ -353,7 +358,6 @@ async function handleSubmit() {
     })
     return
   }
-  console.log(priority.value)
 
   // 4-2. 提交前先让用户确认是否开启提醒，再请求订阅授权（微信小程序）
   const subscribeStatus = await confirmSubscribeBeforeSubmit()
@@ -369,13 +373,9 @@ async function handleSubmit() {
     subscribeTemplateId: SUBSCRIBE_TEMPLATE_ID,
     subscribeStatus,
   }))
-  console.log(submitData)
   // 5. 提交数据
   try {
-    for (const data of submitData) {
-      const response = await selectTeacher(data)
-      console.log('选择成功:', response)
-    }
+    await Promise.all(submitData.map(data => selectTeacher(data)))
     uni.showToast({
       title: '提交成功',
       icon: 'success',
@@ -386,7 +386,7 @@ async function handleSubmit() {
   catch (error) {
     console.error('选择失败:', error)
     uni.showToast({
-      title: error.data.msg,
+      title: error?.data?.msg || '提交失败',
       icon: 'none',
       duration: 2000,
     })
@@ -410,9 +410,6 @@ function navigateToProgress() {
   })
 }
 
-// 阻止触摸移动
-function preventTouchMove() {}
-
 // AI 推荐导师
 async function handleAiRecommend() {
   recommendLoading.value = true
@@ -425,7 +422,6 @@ async function handleAiRecommend() {
       store.userInfo.activityId,
       store.userInfo.username,
     )
-    console.log('AI 推荐结果:', res)
 
     if (res.code === 200 && res.data && res.data.length > 0) {
       recommendList.value = res.data
@@ -443,12 +439,9 @@ async function handleAiRecommend() {
   }
 }
 
-onLoad(() => {
-  calculateScrollHeight()
-})
 onLoad(async () => {
+  calculateScrollHeight()
   const store = useUserStore()
-  console.log(store.userInfo)
   // 中本判断
   if (store.userInfo.username[store.userInfo.username.length - 5] === '8') {
     isEight.value = true
@@ -458,31 +451,23 @@ onLoad(async () => {
   const teacherList: any = await getTeacherListInActivity(
     useUserStore().userInfo.activityId,
   )
-  console.log(res.data)
-  console.log(teacherList)
   // 提取teacherList中所有的teacherId
   const existingTeacherIds = teacherList.map(teacher => teacher.teacherId)
-  console.log(existingTeacherIds)
 
   // 获取所有导师的最大选择学生数
-  res.data.map(async (item) => {
+  await Promise.all(res.data.map(async (item) => {
     const result: any = await getMaxSelectNum(
       item.teacherId,
       useUserStore().userInfo.activityId,
     )
-    // console.log(result)
     if (result.maxSelectNum) {
       item.maxSelectedNum = result.maxSelectNum
     }
-    // console.log(item)
-
-    // item.maxSelectedNum = result.data.maxSelectNum
-  })
+  }))
   // 过滤res.data，只保留存在于existingTeacherIds中的老师
   const filteredTeachers = res.data.filter(teacher =>
     existingTeacherIds.includes(teacher.teacherId),
   )
-  console.log(filteredTeachers)
 
   const requests = filteredTeachers.map(async (teacher) => {
     try {
@@ -491,7 +476,6 @@ onLoad(async () => {
         teacher.teacherId,
         useUserStore().userInfo.activityId,
       )
-      console.log(response)
       if (response.length > 0) {
         let selectedNum = 0
         for (let i = 0; i < response.length; i++) {
@@ -499,8 +483,6 @@ onLoad(async () => {
             selectedNum++
           }
         }
-        console.log(selectedNum)
-        console.log(teacher)
         // if (teacher.maxSelectedNum === selectedNum) {
         //   return
         // }
@@ -524,7 +506,6 @@ onLoad(async () => {
   })
   // 等待所有异步请求完成
   const processedTeachers = await Promise.all(requests)
-  console.log('原始数据:', processedTeachers)
 
   // 使用filter方法过滤掉已达到最大选择数的导师数据
   // 过滤条件：保留那些maxSelectedNum和selectedNum不相等的项
@@ -535,16 +516,11 @@ onLoad(async () => {
       && item.selectedNum !== undefined
       && item.maxSelectedNum === item.selectedNum
     ) {
-      console.log(
-        `过滤掉导师：${item.name || item.teacherId} (已达到最大选择数: ${item.selectedNum}/${item.maxSelectedNum})`,
-      )
       return false
     }
     // 其他情况保留
     return true
   })
-
-  console.log('过滤后的数据:', processedTeachersAfterFilter)
   // 后续可以使用filteredTeachers替代processedTeachers进行分类和显示
   // 根据teacherType分类数据
   majorList.value = []
@@ -567,12 +543,6 @@ onLoad(async () => {
     }
   })
 
-  console.log('分类后的教师列表:', {
-    majorList: majorList.value,
-    publicList: publicList.value,
-    peopleList: peopleList.value,
-  })
-
   // 查询活动详情
   const res1: any = await getActivityDetail(useUserStore().userInfo.activityId)
   // console.log(res1)
@@ -580,7 +550,6 @@ onLoad(async () => {
   currentActivityTime.value.stdChooseStartDate = new Date(
     res1.stdChooseStartDate,
   )
-  console.log(currentActivityTime.value)
 })
 </script>
 
@@ -636,164 +605,19 @@ onLoad(async () => {
       class="s-choose-scroll px-5 pb-32 pt-5"
       :style="{ height: `${scrollHeight}px` }"
     >
-      <!-- 专业导师列表 -->
-      <template v-if="activeTab === 'major'">
-        <view
-          v-if="majorList.length === 0"
-          class="py-10 text-center text-[26rpx] text-[#6B7280]"
-        >
-          暂无专业导师数据
-        </view>
-        <view
-          v-for="item in majorList"
-          :key="item.id"
-          class="ios-card mb-4"
-          style="padding: 0"
-        >
-          <view class="ios-cell">
-            <view class="flex-1 text-[28rpx] text-[#111827] font-600">
-              {{ item.name }}
-            </view>
-            <view
-              class="text-[24rpx]"
-              :class="
-                item.number >= 36
-                  ? 'text-[#FF3B30]'
-                  : item.number >= 18
-                    ? 'text-[#F59E0B]'
-                    : 'text-[#0A84FF]'
-              "
-            >
-              {{ item.number }}
-            </view>
-          </view>
-          <view class="ios-divider" style="margin-left: 28rpx" />
-          <view class="flex gap-3 px-4 pb-4 pt-3">
-            <button
-              class="ios-btn ios-btn--secondary flex-1"
-              style="padding: 18rpx 18rpx; font-size: 28rpx"
-              @tap="viewDetail(item)"
-            >
-              详情
-            </button>
-            <button
-              class="ios-btn flex-1"
-              :class="item.selected ? 'ios-btn--secondary' : 'ios-btn--primary'"
-              :style="item.selected ? {} : { backgroundColor: IOS_BLUE }"
-              style="padding: 18rpx 18rpx; font-size: 28rpx"
-              @tap="toggleSelect(item.teacherId)"
-            >
-              {{ item.selected ? "已选" : "选择" }}
-            </button>
-          </view>
-        </view>
-      </template>
-
-      <!-- 公共导师 -->
-      <template v-else-if="activeTab === 'public'">
-        <view
-          v-if="publicList.length === 0"
-          class="py-10 text-center text-[26rpx] text-[#6B7280]"
-        >
-          暂无公共导师数据
-        </view>
-        <view
-          v-for="item in publicList"
-          :key="item.id"
-          class="ios-card mb-4"
-          style="padding: 0"
-        >
-          <view class="ios-cell">
-            <view class="flex-1 text-[28rpx] text-[#111827] font-600">
-              {{ item.name }}
-            </view>
-            <view
-              class="text-[24rpx]"
-              :class="
-                item.number >= 36
-                  ? 'text-[#FF3B30]'
-                  : item.number >= 18
-                    ? 'text-[#F59E0B]'
-                    : 'text-[#0A84FF]'
-              "
-            >
-              {{ item.number }}
-            </view>
-          </view>
-          <view class="ios-divider" style="margin-left: 28rpx" />
-          <view class="flex gap-3 px-4 pb-4 pt-3">
-            <button
-              class="ios-btn ios-btn--secondary flex-1"
-              style="padding: 18rpx 18rpx; font-size: 28rpx"
-              @tap="viewDetail(item)"
-            >
-              详情
-            </button>
-            <button
-              class="ios-btn flex-1"
-              :class="item.selected ? 'ios-btn--secondary' : 'ios-btn--primary'"
-              :style="item.selected ? {} : { backgroundColor: IOS_BLUE }"
-              style="padding: 18rpx 18rpx; font-size: 28rpx"
-              @tap="toggleSelect(item.teacherId)"
-            >
-              {{ item.selected ? "已选" : "选择" }}
-            </button>
-          </view>
-        </view>
-      </template>
-
-      <!-- 校友导师 -->
-      <template v-else>
-        <view
-          v-if="peopleList.length === 0"
-          class="py-10 text-center text-[26rpx] text-[#6B7280]"
-        >
-          暂无校友导师数据
-        </view>
-        <view
-          v-for="item in peopleList"
-          :key="item.id"
-          class="ios-card mb-4"
-          style="padding: 0"
-        >
-          <view class="ios-cell">
-            <view class="flex-1 text-[28rpx] text-[#111827] font-600">
-              {{ item.name }}
-            </view>
-            <view
-              class="text-[24rpx]"
-              :class="
-                item.number >= 36
-                  ? 'text-[#FF3B30]'
-                  : item.number >= 18
-                    ? 'text-[#F59E0B]'
-                    : 'text-[#0A84FF]'
-              "
-            >
-              {{ item.number }}
-            </view>
-          </view>
-          <view class="ios-divider" style="margin-left: 28rpx" />
-          <view class="flex gap-3 px-4 pb-4 pt-3">
-            <button
-              class="ios-btn ios-btn--secondary flex-1"
-              style="padding: 18rpx 18rpx; font-size: 28rpx"
-              @tap="viewDetail(item)"
-            >
-              详情
-            </button>
-            <button
-              class="ios-btn flex-1"
-              :class="item.selected ? 'ios-btn--secondary' : 'ios-btn--primary'"
-              :style="item.selected ? {} : { backgroundColor: IOS_BLUE }"
-              style="padding: 18rpx 18rpx; font-size: 28rpx"
-              @tap="toggleSelect(item.teacherId)"
-            >
-              {{ item.selected ? "已选" : "选择" }}
-            </button>
-          </view>
-        </view>
-      </template>
+      <view
+        v-if="currentList.length === 0"
+        class="py-10 text-center text-[26rpx] text-[#6B7280]"
+      >
+        {{ emptyText }}
+      </view>
+      <TeacherCard
+        v-for="item in currentList"
+        :key="item.teacherId"
+        :teacher="item"
+        @view-detail="viewDetail"
+        @toggle-select="toggleSelect"
+      />
     </scroll-view>
 
     <!-- 已选导师信息栏 -->
@@ -851,7 +675,7 @@ onLoad(async () => {
     <view
       class="submit-card fixed left-0 right-0 z-50 bg-white p-4 shadow-lg transition-all duration-300"
       :class="{ 'bottom-0': showSubmitCard, '-bottom-full': !showSubmitCard }"
-      @touchmove="preventTouchMove"
+      @touchmove.prevent
     >
       <view class="ios-sheet__handle" />
       <view class="card-header mb-4 flex items-center justify-between px-1">
