@@ -110,14 +110,6 @@ function handleClose() {
         </view>
         <view class="form-item mb-3 flex">
           <view class="label w-1/3 text-gray-600">
-            作品集：
-          </view>
-          <view class="value w-2/3">
-            {{ info?.portfolio || '未设置' }}
-          </view>
-        </view>
-        <view class="form-item mb-3 flex">
-          <view class="label w-1/3 text-gray-600">
             简历：
           </view>
           <view class="value w-2/3">

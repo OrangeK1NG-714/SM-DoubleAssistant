@@ -12,7 +12,7 @@ import { writeStdInfo } from '@/api/stdInfo'
 import { useSafeArea } from '@/composables/useSafeArea'
 import { useUserStore } from '@/store/user'
 import { getEnvBaseUrl } from '@/utils'
-import PLATFORM from '@/utils/platform'
+
 
 // 定义表单数据类型
 interface StudentForm {
@@ -22,13 +22,15 @@ interface StudentForm {
   grade: string
   classNum: string
   phone: string
+  qq: string
+  wechat: string
   gpa: string
   direction: string
   resumeName: string
 }
 
 defineOptions({
-  name: 'Home',
+  name: 'UserMsg',
 })
 
 const safeAreaInsets = useSafeArea()
@@ -47,7 +49,6 @@ const directionArray = [
   '其他',
 ]
 
-// 使用reactive创建表单对象
 const formData = ref<StudentForm>({
   name: '',
   gender: '',
@@ -55,6 +56,8 @@ const formData = ref<StudentForm>({
   grade: '',
   classNum: '',
   phone: '',
+  qq: '',
+  wechat: '',
   gpa: '',
   direction: '',
   resumeName: '',
@@ -64,7 +67,6 @@ const showAgreement = ref(false)
 const focusedField = ref<string | null>(null)
 const submitting = ref(false)
 const isUploading = ref(false)
-
 function uploadResume() {
   if (isUploading.value) return
   isUploading.value = true
@@ -180,10 +182,10 @@ function validateForm(): boolean {
     return false
   }
 
-  // GPA为选填，填写时才校验
-  if (formData.value.gpa && !/^[0-4](?:\.\d{1,2})?$/.test(formData.value.gpa)) {
+  // GPA为选填，填写时才校验（0.00 ~ 5.00）
+  if (formData.value.gpa && !/^[0-5](?:\.\d{1,2})?$/.test(formData.value.gpa)) {
     uni.showToast({
-      title: '绩点格式不正确（0.00-4.99）',
+      title: '绩点格式不正确（0.00-5.00）',
       icon: 'none',
     })
     return false
@@ -200,6 +202,8 @@ function getFieldName(field: keyof StudentForm): string {
     grade: '年级',
     classNum: '班级',
     phone: '联系电话',
+    qq: 'QQ',
+    wechat: '微信',
     gpa: '绩点',
     direction: '意向方向',
     resumeName: '简历',
@@ -384,6 +388,49 @@ async function handleAgree() {
               placeholder="请输入手机号"
               :cursor-spacing="20"
               @focus="focusedField = 'phone'"
+              @blur="focusedField = null"
+            >
+          </view>
+        </view>
+      </view>
+
+      <view class="mb-3 mt-8 px-1 text-xs text-[#6B7280]">
+        联系方式（选填）
+      </view>
+      <view class="ios-card">
+        <view
+          class="ios-cell"
+          :class="{ 'ios-cell--focused': focusedField === 'qq' }"
+        >
+          <view class="ios-cell__label">
+            QQ
+          </view>
+          <view class="ios-cell__content">
+            <input
+              v-model="formData.qq"
+              class="ios-input"
+              placeholder="选填"
+              :cursor-spacing="20"
+              @focus="focusedField = 'qq'"
+              @blur="focusedField = null"
+            >
+          </view>
+        </view>
+        <view class="ios-divider" style="margin-left: 28rpx" />
+        <view
+          class="ios-cell"
+          :class="{ 'ios-cell--focused': focusedField === 'wechat' }"
+        >
+          <view class="ios-cell__label">
+            微信
+          </view>
+          <view class="ios-cell__content">
+            <input
+              v-model="formData.wechat"
+              class="ios-input"
+              placeholder="选填"
+              :cursor-spacing="20"
+              @focus="focusedField = 'wechat'"
               @blur="focusedField = null"
             >
           </view>
