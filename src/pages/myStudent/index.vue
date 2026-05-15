@@ -2,14 +2,21 @@
 {
   style: {
     navigationBarTitleText: "我的学生",
+    enablePullDownRefresh: true,
   },
 }
 </route>
 
 <script lang="ts" setup>
 import { getSelectState } from '@/api/teaInfo'
-import { IOS_BLUE } from '@/constants/theme'
+import { useSafeArea } from '@/composables/useSafeArea'
 import { useUserStore } from '@/store/user'
+
+const safeAreaInsets = useSafeArea()
+const scrollHeight = computed(() => {
+  const sys = uni.getSystemInfoSync()
+  return sys.windowHeight - 200 - safeAreaInsets.top
+})
 const tabbar = ref('myStudent')
 const userStore = useUserStore()
 const studentList = ref<Array<any>>([])
@@ -63,17 +70,21 @@ function handleTabChange(e: any) {
 function handleCloseDialog() {
   dialogVisible.value = false
 }
+async function loadData() {
+  const res: any = await getSelectState({
+    teacherId: userStore.userInfo.username,
+    activityId: userStore.userInfo.activityId,
+  })
+  // 按 order 排序：1111, 2222, 3333
+  studentList.value = res.sort(
+    (a: any, b: any) => (a.order || 999) - (b.order || 999),
+  )
+}
+
 onLoad(async () => {
   try {
     uni.showLoading({ title: '加载中...' })
-    const res: any = await getSelectState({
-      teacherId: userStore.userInfo.username,
-      activityId: userStore.userInfo.activityId,
-    })
-    // 按 order 排序：1111, 2222, 3333
-    studentList.value = res.sort(
-      (a: any, b: any) => (a.order || 999) - (b.order || 999),
-    )
+    await loadData()
   }
   catch (error) {
     uni.showToast({ title: '数据加载失败', icon: 'none' })
@@ -82,10 +93,16 @@ onLoad(async () => {
     uni.hideLoading()
   }
 })
+
+onPullDownRefresh(async () => {
+  studentList.value = []
+  await loadData()
+  uni.stopPullDownRefresh()
+})
 </script>
 
 <template>
-  <view class="ios-page">
+  <view class="ios-page" :style="{ paddingTop: safeAreaInsets.top + 'px' }">
     <view class="px-5 pt-6">
       <view class="ios-title">
         我的学生
@@ -103,7 +120,7 @@ onLoad(async () => {
     <scroll-view
       scroll-y
       class="w-90% px-5 pb-18 pt-5"
-      :style="{ height: `680px` }"
+      :style="{ height: scrollHeight + 'px' }"
     >
       <view
         v-if="studentList.length === 0"
@@ -156,6 +173,7 @@ onLoad(async () => {
     <!-- 底部固定导航栏 -->
     <view
       class="ios-bottom-nav fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white px-3 py-4"
+      :style="{ paddingBottom: (safeAreaInsets.bottom + 16) + 'px' }"
     >
       <button
         v-for="item in navItems"
@@ -164,7 +182,6 @@ onLoad(async () => {
         :class="
           tabbar === item.name ? 'ios-btn--primary' : 'ios-btn--secondary'
         "
-        :style="tabbar === item.name ? { backgroundColor: IOS_BLUE } : {}"
         @click="
           () => {
             tabbar = item.name;
@@ -177,17 +194,3 @@ onLoad(async () => {
     </view>
   </view>
 </template>
-
-<style scoped>
-.ios-bottom-nav {
-  display: flex;
-  gap: 8rpx;
-}
-.ios-bottom-nav-btn {
-  flex: 1;
-  width: auto;
-  min-width: 0;
-  padding: 16rpx 10rpx;
-  font-size: 24rpx;
-}
-</style>

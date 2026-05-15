@@ -2,16 +2,20 @@
 {
   style: {
     navigationBarTitleText: '志愿查看',
+    enablePullDownRefresh: true,
   }
 }
 </route>
 
 <script lang="ts" setup>
+import { onPullDownRefresh } from '@dcloudio/uni-app'
 import { getStudentFinalChoice } from '@/api/stdInfo'
 import { getTeacherList } from '@/api/teaInfo'
 import { getChooseCountWithActivityId } from '@/api/useraction'
-import { IOS_BLUE } from '@/constants/theme'
+import { useSafeArea } from '@/composables/useSafeArea'
 import { useUserStore } from '@/store/user'
+
+const safeAreaInsets = useSafeArea()
 
 const userStore = useUserStore()
 
@@ -41,33 +45,37 @@ function navigateHome() {
   })
 }
 
+async function loadData() {
+  const res: any = await getChooseCountWithActivityId(userStore.userInfo.activityId, userStore.userInfo.username)
+  if (res.length === 0) {
+    uni.showToast({
+      title: '您还未选择志愿',
+      icon: 'none',
+      duration: 2000,
+    })
+  }
+  res.sort((a: any, b: any) => a.order - b.order)
+  const teacherList: any = await getTeacherList()
+
+  const teacherNameMap: Record<number, string> = {}
+  teacherList.data.forEach((item) => {
+    teacherNameMap[item.teacherId] = item.name
+  })
+
+  const finalChoice: any = await getStudentFinalChoice(userStore.userInfo.username, userStore.userInfo.activityId)
+  sortedList.value = res.map(item => ({
+    ...item,
+    mentor_name: teacherNameMap[item.teacherId],
+  }))
+  if (finalChoice.data) {
+    mentor.value = teacherNameMap[finalChoice.teacherId]
+  }
+}
+
 onLoad(async () => {
   try {
     uni.showLoading({ title: '加载中...' })
-    const res: any = await getChooseCountWithActivityId(userStore.userInfo.activityId, userStore.userInfo.username)
-    if (res.length === 0) {
-      uni.showToast({
-        title: '您还未选择志愿',
-        icon: 'none',
-        duration: 2000,
-      })
-    }
-    res.sort((a: any, b: any) => a.order - b.order)
-    const teacherList: any = await getTeacherList()
-
-    const teacherNameMap: Record<number, string> = {}
-    teacherList.data.forEach((item) => {
-      teacherNameMap[item.teacherId] = item.name
-    })
-
-    const finalChoice: any = await getStudentFinalChoice(userStore.userInfo.username, userStore.userInfo.activityId)
-    sortedList.value = res.map(item => ({
-      ...item,
-      mentor_name: teacherNameMap[item.teacherId],
-    }))
-    if (finalChoice.data) {
-      mentor.value = teacherNameMap[finalChoice.teacherId]
-    }
+    await loadData()
   }
   catch (error) {
     uni.showToast({ title: '数据加载失败', icon: 'none' })
@@ -76,10 +84,18 @@ onLoad(async () => {
     uni.hideLoading()
   }
 })
+
+onPullDownRefresh(async () => {
+  list.value = []
+  sortedList.value = []
+  mentor.value = ''
+  await loadData()
+  uni.stopPullDownRefresh()
+})
 </script>
 
 <template>
-  <view class="ios-page pb-30">
+  <view class="ios-page pb-30" :style="{ paddingTop: safeAreaInsets.top + 'px' }">
     <view class="px-5 pt-6">
       <view class="ios-header-row">
         <view class="ios-header-main">
@@ -129,19 +145,17 @@ onLoad(async () => {
     </view>
 
     <!-- 底部固定导航栏 -->
-    <view class="bottom-nav fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white px-3 py-4">
+    <view class="ios-bottom-nav fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white px-3 py-4" :style="{ paddingBottom: (safeAreaInsets.bottom + 16) + 'px' }">
       <button
-        class="ios-btn nav-switch-btn mx-1 flex-1"
+        class="ios-btn ios-bottom-nav-btn mx-1"
         :class="isProgressPage ? 'ios-btn--secondary' : 'ios-btn--primary'"
-        :style="isProgressPage ? {} : { backgroundColor: IOS_BLUE }"
         @tap="navigateToMyChoices"
       >
         我的志愿
       </button>
       <button
-        class="ios-btn nav-switch-btn mx-1 flex-1"
+        class="ios-btn ios-bottom-nav-btn mx-1"
         :class="isProgressPage ? 'ios-btn--primary' : 'ios-btn--secondary'"
-        :style="isProgressPage ? { backgroundColor: IOS_BLUE } : {}"
         @tap="navigateToProgress"
       >
         选择页面
@@ -182,16 +196,4 @@ onLoad(async () => {
   opacity: 0.9;
 }
 
-.bottom-nav {
-  display: flex;
-  align-items: center;
-  gap: 8rpx;
-}
-
-.nav-switch-btn {
-  width: auto;
-  min-width: 0;
-  padding: 20rpx 12rpx;
-  font-size: 32rpx;
-}
 </style>

@@ -9,6 +9,7 @@
 
 <script lang="ts" setup>
 import { writeStdInfo } from '@/api/stdInfo'
+import { useSafeArea } from '@/composables/useSafeArea'
 import { useUserStore } from '@/store/user'
 import { getEnvBaseUrl } from '@/utils'
 import PLATFORM from '@/utils/platform'
@@ -29,28 +30,8 @@ interface StudentForm {
 defineOptions({
   name: 'Home',
 })
-// 获取屏幕边界到安全区域距离
-let safeAreaInsets
-let systemInfo
 
-// #ifdef MP-WEIXIN
-// 微信小程序使用新的API
-systemInfo = uni.getWindowInfo()
-safeAreaInsets = systemInfo.safeArea
-  ? {
-      top: systemInfo.safeArea.top,
-      right: systemInfo.windowWidth - systemInfo.safeArea.right,
-      bottom: systemInfo.windowHeight - systemInfo.safeArea.bottom,
-      left: systemInfo.safeArea.left,
-    }
-  : null
-// #endif
-
-// #ifndef MP-WEIXIN
-// 其他平台继续使用uni API
-systemInfo = uni.getSystemInfoSync()
-safeAreaInsets = systemInfo.safeAreaInsets
-// #endif
+const safeAreaInsets = useSafeArea()
 
 const genderArray = ['男', '女']
 const directionArray = [
@@ -275,7 +256,7 @@ async function handleAgree() {
 <template>
   <view
     class="ios-page"
-    :style="{ paddingTop: `${safeAreaInsets?.top || 0}px` }"
+    :style="{ paddingTop: safeAreaInsets.top + 'px' }"
   >
     <view class="px-5 pt-6">
       <view class="ios-title">
@@ -303,6 +284,7 @@ async function handleAgree() {
               v-model="formData.name"
               class="ios-input"
               placeholder="请输入姓名"
+              :cursor-spacing="20"
               @focus="focusedField = 'name'"
               @blur="focusedField = null"
             >
@@ -342,6 +324,7 @@ async function handleAgree() {
               class="ios-input"
               type="number"
               placeholder="请输入学号"
+              :cursor-spacing="20"
               @focus="focusedField = 'studentId'"
               @blur="focusedField = null"
             >
@@ -360,6 +343,7 @@ async function handleAgree() {
               v-model="formData.grade"
               class="ios-input"
               placeholder="例如 2023"
+              :cursor-spacing="20"
               @focus="focusedField = 'grade'"
               @blur="focusedField = null"
             >
@@ -378,6 +362,7 @@ async function handleAgree() {
               v-model="formData.classNum"
               class="ios-input"
               placeholder="请输入班级"
+              :cursor-spacing="20"
               @focus="focusedField = 'classNum'"
               @blur="focusedField = null"
             >
@@ -397,6 +382,7 @@ async function handleAgree() {
               class="ios-input"
               type="number"
               placeholder="请输入手机号"
+              :cursor-spacing="20"
               @focus="focusedField = 'phone'"
               @blur="focusedField = null"
             >
@@ -421,6 +407,7 @@ async function handleAgree() {
               class="ios-input"
               type="digit"
               placeholder="选填"
+              :cursor-spacing="20"
               @focus="focusedField = 'gpa'"
               @blur="focusedField = null"
             >

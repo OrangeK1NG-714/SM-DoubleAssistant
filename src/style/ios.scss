@@ -136,3 +136,16 @@ page {
   background: rgba(17, 24, 39, 0.12);
   margin: 8rpx auto 14rpx;
 }
+
+.ios-bottom-nav {
+  display: flex;
+  gap: 8rpx;
+}
+
+.ios-bottom-nav-btn {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  padding: 16rpx 10rpx;
+  font-size: 24rpx;
+}

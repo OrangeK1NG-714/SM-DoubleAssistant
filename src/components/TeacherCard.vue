@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { IOS_BLUE, TEACHER_POPULARITY_HIGH, TEACHER_POPULARITY_MEDIUM } from '@/constants/theme'
+import { TEACHER_POPULARITY_HIGH, TEACHER_POPULARITY_MEDIUM } from '@/constants/theme'
 
 defineProps<{
   teacher: any
@@ -45,7 +45,6 @@ const emit = defineEmits<{
       <button
         class="ios-btn flex-1"
         :class="teacher.selected ? 'ios-btn--secondary' : 'ios-btn--primary'"
-        :style="teacher.selected ? {} : { backgroundColor: IOS_BLUE }"
         style="padding: 18rpx 18rpx; font-size: 28rpx"
         @tap="emit('toggleSelect', teacher.teacherId)"
       >

@@ -4,6 +4,7 @@
 layout: 'default',
   style: {
     navigationBarTitleText: '首页',
+    enablePullDownRefresh: true,
   },
 }
 </route>
@@ -11,16 +12,19 @@ layout: 'default',
 <script lang="ts" setup>
 // 脚本部分保持不变
 import { ref } from 'vue'
+import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app'
 import { isStudentInActivity } from '@/api/stdInfo'
 import { isTeacherInActivity } from '@/api/teaInfo'
 import { getActivityList, getUserDetail } from '@/api/useraction'
 import { IOS_BLUE } from '@/constants/theme'
+import { useSafeArea } from '@/composables/useSafeArea'
 import { useUserStore } from '@/store/user'
 
 defineOptions({
   name: 'Home',
 })
 
+const safeAreaInsets = useSafeArea()
 const useStore = useUserStore()
 
 const nowDate = ref(new Date())
@@ -170,73 +174,52 @@ async function enterSystem(id: string) {
   }
 }
 
-// 安全区域处理保持不变
-let safeAreaInsets
-let systemInfo
-
-// #ifdef MP-WEIXIN
-systemInfo = uni.getWindowInfo()
-safeAreaInsets = systemInfo.safeArea
-  ? {
-      top: systemInfo.safeArea.top,
-      right: systemInfo.windowWidth - systemInfo.safeArea.right,
-      bottom: systemInfo.windowHeight - systemInfo.safeArea.bottom,
-      left: systemInfo.safeArea.left,
-    }
-  : null
-// #endif
-
-// #ifndef MP-WEIXIN
-systemInfo = uni.getSystemInfoSync()
-safeAreaInsets = systemInfo.safeAreaInsets
-// #endif
-
-onLoad(async () => {
+async function loadData() {
   try {
-  uni.showLoading({ title: '加载中...' })
-  const res: any = await getActivityList()
+    uni.showLoading({ title: '加载中...' })
+    const res: any = await getActivityList()
 
-  if (useStore.userInfo?.role === 'student') {
-    // 先检查用户是否在每个活动中
-    const promises = res.map(async (item) => {
-      return await isStudentInActivity(item._id, useStore.userInfo?.username)
-    })
-    const asd = await Promise.all(promises)
+    if (useStore.userInfo?.role === 'student') {
+      // 先检查用户是否在每个活动中
+      const promises = res.map(async (item) => {
+        return await isStudentInActivity(item._id, useStore.userInfo?.username)
+      })
+      const asd = await Promise.all(promises)
 
-    // 过滤出用户参与的活动
-    const userActivities = res.filter((item, index) => {
-      return asd[index].code === 200
-    })
+      // 过滤出用户参与的活动
+      const userActivities = res.filter((item, index) => {
+        return asd[index].code === 200
+      })
 
-    // 再根据时间分类活动
-    classifyActivities(userActivities as any)
-  }
-  else {
-    // 先检查用户是否在每个活动中
-    const promises = res.map(async (item) => {
-      return await isTeacherInActivity(item._id, useStore.userInfo?.username)
-    })
-    const asd = await Promise.all(promises)
+      // 再根据时间分类活动
+      classifyActivities(userActivities as any)
+    }
+    else {
+      // 先检查用户是否在每个活动中
+      const promises = res.map(async (item) => {
+        return await isTeacherInActivity(item._id, useStore.userInfo?.username)
+      })
+      const asd = await Promise.all(promises)
 
-    // 过滤出用户参与的活动
-    const userActivities = res.filter((item, index) => {
-      return asd[index].code === 200
-    })
+      // 过滤出用户参与的活动
+      const userActivities = res.filter((item, index) => {
+        return asd[index].code === 200
+      })
 
-    // 再根据时间分类活动
-    classifyActivities(userActivities as any)
-  }
+      // 再根据时间分类活动
+      classifyActivities(userActivities as any)
+    }
 
-  // 从服务器查询用户信息
-  const userDetail: any = await getUserDetail(useStore.userInfo?.username, useStore.userInfo?.role)
-  // 新增赋值逻辑
-  role.value = useStore.userInfo?.role
-  if (role.value === 'student') {
-    name.value = userDetail.data.data.name
-  }
-  else if (role.value === 'teacher') {
-    name.value = userDetail.data.name
-  }
+    // 从服务器查询用户信息
+    const userDetail: any = await getUserDetail(useStore.userInfo?.username, useStore.userInfo?.role)
+    // 新增赋值逻辑
+    role.value = useStore.userInfo?.role
+    if (role.value === 'student') {
+      name.value = userDetail.data.data.name
+    }
+    else if (role.value === 'teacher') {
+      name.value = userDetail.data.name
+    }
   }
   catch (error) {
     uni.showToast({ title: '数据加载失败', icon: 'none' })
@@ -244,11 +227,22 @@ onLoad(async () => {
   finally {
     uni.hideLoading()
   }
+}
+
+onLoad(async () => {
+  await loadData()
+})
+
+onPullDownRefresh(async () => {
+  ongoingList.value = []
+  endedList.value = []
+  await loadData()
+  uni.stopPullDownRefresh()
 })
 </script>
 
 <template>
-  <view class="ios-page" :style="{ paddingTop: `${safeAreaInsets?.top || 0}px` }">
+  <view class="ios-page" :style="{ paddingTop: safeAreaInsets.top + 'px' }">
     <view class="px-5 pt-6">
       <view class="ios-header-row">
         <view class="ios-header-main">
@@ -329,7 +323,7 @@ onLoad(async () => {
             <button class="ios-btn ios-btn--secondary" @tap="viewDetail(item)">
               详情
             </button>
-            <button class="ios-btn ios-btn--primary" :style="{ backgroundColor: IOS_BLUE }" @tap="enterSystem(item.id)">
+            <button class="ios-btn ios-btn--primary" @tap="enterSystem(item.id)">
               进入系统
             </button>
           </view>
@@ -404,7 +398,6 @@ onLoad(async () => {
         <button
           v-if="selectedActivity"
           class="ios-btn ios-btn--primary"
-          :style="{ backgroundColor: IOS_BLUE }"
           @tap="enterSystem(selectedActivity.id)"
         >
           进入系统
@@ -418,10 +411,6 @@ onLoad(async () => {
 </template>
 
 <style lang="css" scoped>
-.ios-page {
-  min-height: 100vh;
-  background: #f2f2f7;
-}
 .ios-header-row {
   display: flex;
   align-items: flex-start;
@@ -448,38 +437,6 @@ onLoad(async () => {
 .ios-logout-btn:active {
   transform: scale(0.98);
   opacity: 0.9;
-}
-.ios-title {
-  font-size: 44rpx;
-  font-weight: 700;
-  color: #111827;
-  letter-spacing: -0.02em;
-}
-.ios-subtitle {
-  font-size: 26rpx;
-  color: #6b7280;
-  line-height: 1.5;
-}
-.ios-seg {
-  background: rgba(17, 24, 39, 0.06);
-  border-radius: 28rpx;
-  padding: 8rpx;
-  display: flex;
-  gap: 8rpx;
-}
-.ios-seg__item {
-  flex: 1;
-  text-align: center;
-  padding: 16rpx 0;
-  border-radius: 22rpx;
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #6b7280;
-}
-.ios-seg__item--active {
-  background: #ffffff;
-  box-shadow: 0 6rpx 16rpx rgba(0, 0, 0, 0.08);
-  color: #111827;
 }
 .ios-empty {
   padding: 40rpx 0;
@@ -563,19 +520,6 @@ onLoad(async () => {
 .ios-btn:active {
   transform: scale(0.99);
   opacity: 0.92;
-}
-.ios-sheet {
-  background: #ffffff;
-  border-top-left-radius: 40rpx;
-  border-top-right-radius: 40rpx;
-  padding: 14rpx 18rpx 24rpx;
-}
-.ios-sheet__handle {
-  width: 72rpx;
-  height: 10rpx;
-  border-radius: 999rpx;
-  background: rgba(17, 24, 39, 0.12);
-  margin: 8rpx auto 14rpx;
 }
 .ios-sheet__header {
   padding: 6rpx 10rpx 10rpx;

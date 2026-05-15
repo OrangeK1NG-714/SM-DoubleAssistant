@@ -10,34 +10,14 @@
 
 <script lang="ts" setup>
 import { updateStdPassword } from '@/api/stdInfo'
+import { useSafeArea } from '@/composables/useSafeArea'
 import { useUserStore } from '@/store/user'
 
 defineOptions({
   name: 'Home',
 })
 
-// 获取屏幕边界到安全区域距离
-let safeAreaInsets
-let systemInfo
-
-// #ifdef MP-WEIXIN
-// 微信小程序使用新的API
-systemInfo = uni.getWindowInfo()
-safeAreaInsets = systemInfo.safeArea
-  ? {
-      top: systemInfo.safeArea.top,
-      right: systemInfo.windowWidth - systemInfo.safeArea.right,
-      bottom: systemInfo.windowHeight - systemInfo.safeArea.bottom,
-      left: systemInfo.safeArea.left,
-    }
-  : null
-// #endif
-
-// #ifndef MP-WEIXIN
-// 其他平台继续使用uni API
-systemInfo = uni.getSystemInfoSync()
-safeAreaInsets = systemInfo.safeAreaInsets
-// #endif
+const safeAreaInsets = useSafeArea()
 
 // 密码重置相关状态
 const resetUsername = ref('')
@@ -91,7 +71,7 @@ async function handleResetPassword() {
 </script>
 
 <template>
-  <view class="ios-page" :style="{ paddingTop: `${safeAreaInsets?.top || 0}px` }">
+  <view class="ios-page" :style="{ paddingTop: safeAreaInsets.top + 'px' }">
     <view class="px-5 pt-6">
       <view class="ios-title">
         重置密码
@@ -112,6 +92,7 @@ async function handleResetPassword() {
               v-model="resetUsername"
               class="ios-input"
               placeholder="学号 / 工号"
+              :cursor-spacing="20"
               :disabled="isSubmitting"
               @focus="focusedField = 'username'"
               @blur="focusedField = null"
@@ -129,6 +110,7 @@ async function handleResetPassword() {
               class="ios-input"
               password
               placeholder="请输入新密码"
+              :cursor-spacing="20"
               :disabled="isSubmitting"
               @focus="focusedField = 'new'"
               @blur="focusedField = null"
@@ -146,6 +128,7 @@ async function handleResetPassword() {
               class="ios-input"
               password
               placeholder="再次输入新密码"
+              :cursor-spacing="20"
               :disabled="isSubmitting"
               @focus="focusedField = 'confirm'"
               @blur="focusedField = null"

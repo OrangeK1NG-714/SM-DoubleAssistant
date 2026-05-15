@@ -3,6 +3,7 @@
 {
   style: {
     navigationBarTitleText: '老师选择页面',
+    enablePullDownRefresh: true,
   },
 }
 </route>
@@ -11,6 +12,7 @@
 import { getStudentMsg } from '@/api/stdInfo'
 import { cancelSelect, getMaxSelectNum, getSelectState, selectStudent, updateChoose } from '@/api/teaInfo'
 import { getActivityList, getChooseCount, getMaxChooseNum } from '@/api/useraction'
+import { useSafeArea } from '@/composables/useSafeArea'
 import { IOS_BLUE } from '@/constants/theme'
 import { useUserStore } from '@/store/user'
 
@@ -19,7 +21,7 @@ const userStore = useUserStore()
 const tabbar = ref('t_choose')// 底部导航栏
 
 // 获取屏幕边界到安全区域距离
-const safeAreaInsets = ref<any>(null)
+const safeAreaInsets = useSafeArea()
 
 // 表单数据
 const activeTab = ref('first')
@@ -54,25 +56,30 @@ const navItems = [
   { name: 't_choose', label: '选择情况' },
 ]
 
+async function loadData() {
+  calculateScrollHeight()
+  const res: any = await getChooseCount(userStore.userInfo.username, userStore.userInfo.activityId)
+  await categorizeByPriority(res)
+  firstChoseStudentList.value = firstList.value.filter(item => item.finalTeacher === item.teacherId)
+  secondChoseStudentList.value = secondList.value.filter(item => item.finalTeacher === item.teacherId)
+  thirdChoseStudentList.value = thirdList.value.filter(item => item.finalTeacher === item.teacherId)
+  // 计算已选择人数
+  selectedNum.value = firstChoseStudentList.value.length + secondChoseStudentList.value.length + thirdChoseStudentList.value.length
+
+  const maxSelectedNum: any = await getMaxSelectNum(userStore.userInfo.username, userStore.userInfo.activityId)
+  userStore.userInfo.maxSelectNum = maxSelectedNum.maxSelectNum
+
+  // 加载时间数据
+  const teacherActivityList: any = await getActivityList()
+  thisActivity.value = teacherActivityList.find(item => item._id === userStore.userInfo.activityId)
+
+  formattedDate.value = formatDate(new Date())
+}
+
 onLoad(async () => {
   try {
     uni.showLoading({ title: '加载中...' })
-    const res: any = await getChooseCount(userStore.userInfo.username, userStore.userInfo.activityId)
-    await categorizeByPriority(res)
-    firstChoseStudentList.value = firstList.value.filter(item => item.finalTeacher === item.teacherId)
-    secondChoseStudentList.value = secondList.value.filter(item => item.finalTeacher === item.teacherId)
-    thirdChoseStudentList.value = thirdList.value.filter(item => item.finalTeacher === item.teacherId)
-    // 计算已选择人数
-    selectedNum.value = firstChoseStudentList.value.length + secondChoseStudentList.value.length + thirdChoseStudentList.value.length
-
-    const maxSelectedNum: any = await getMaxSelectNum(userStore.userInfo.username, userStore.userInfo.activityId)
-    userStore.userInfo.maxSelectNum = maxSelectedNum.maxSelectNum
-
-    // 加载时间数据
-    const teacherActivityList: any = await getActivityList()
-    thisActivity.value = teacherActivityList.find(item => item._id === userStore.userInfo.activityId)
-
-    formattedDate.value = formatDate(new Date())
+    await loadData()
   }
   catch (error) {
     uni.showToast({ title: '数据加载失败', icon: 'none' })
@@ -80,6 +87,19 @@ onLoad(async () => {
   finally {
     uni.hideLoading()
   }
+})
+
+onPullDownRefresh(async () => {
+  majorList.value = []
+  firstList.value = []
+  firstChoseStudentList.value = []
+  secondList.value = []
+  secondChoseStudentList.value = []
+  thirdList.value = []
+  thirdChoseStudentList.value = []
+  selectedNum.value = 0
+  await loadData()
+  uni.stopPullDownRefresh()
 })
 
 function formatDate(date: Date): string {
@@ -178,14 +198,8 @@ function formatDate(date: Date): string {
 // }
 
 function calculateScrollHeight() {
-  const query = uni.createSelectorQuery()
-  query.select('.header').boundingClientRect()
-  query.select('.footer').boundingClientRect()
-  query.exec((res) => {
-    const headerHeight = res[0].height
-    const footerHeight = res[1].top
-    scrollHeight.value = uni.getSystemInfoSync().windowHeight - headerHeight - footerHeight - 80
-  })
+  const sys = uni.getSystemInfoSync()
+  scrollHeight.value = sys.windowHeight - 300 - safeAreaInsets.top
 }
 
 function switchTab(e: any) {
@@ -452,7 +466,7 @@ function handleTabChange(e: any) {
 </script>
 
 <template>
-  <view class="ios-page" :style="{ paddingTop: `${safeAreaInsets?.top || 0}px` }">
+  <view class="ios-page" :style="{ paddingTop: safeAreaInsets.top + 'px' }">
     <view class="px-5 pt-6">
       <view class="ios-title">
         学生选择
@@ -494,7 +508,7 @@ function handleTabChange(e: any) {
     <!-- 使用学生信息弹窗组件 -->
     <StudentDialog :visible="dialogVisible" :info="currentStudent" @close="handleCloseDialog" />
     <!-- 可滚动的内容区域 -->
-    <scroll-view scroll-y class="w-90% px-5 pb-40 pt-5" :style="{ height: `500px` }">
+    <scroll-view scroll-y class="w-90% px-5 pb-40 pt-5" :style="{ height: scrollHeight + 'px' }">
       <!-- 第一志愿列表 -->
       <template v-if="activeTab === 'first'">
         <view v-if="firstList.length === 0" class="py-10 text-center text-[26rpx] text-[#6B7280]">
@@ -522,7 +536,6 @@ function handleTabChange(e: any) {
             <button
               class="ios-btn flex-1"
               :class="item.isChose ? 'ios-btn--primary' : (item.finalTeacher && item.finalTeacher !== item.teacherId ? 'ios-btn--secondary' : 'ios-btn--secondary')"
-              :style="item.isChose ? { backgroundColor: IOS_BLUE } : {}"
               style="padding: 18rpx 18rpx; font-size: 28rpx;"
               :disabled="item.finalTeacher.length > 0 && item.finalTeacher !== item.teacherId"
               @click="toggleSelect(item)"
@@ -560,7 +573,6 @@ function handleTabChange(e: any) {
             <button
               class="ios-btn flex-1"
               :class="item.isChose ? 'ios-btn--primary' : (item.finalTeacher && item.finalTeacher !== item.teacherId ? 'ios-btn--secondary' : 'ios-btn--secondary')"
-              :style="item.isChose ? { backgroundColor: IOS_BLUE } : {}"
               style="padding: 18rpx 18rpx; font-size: 28rpx;"
               :disabled="item.finalTeacher.length > 0 && item.finalTeacher !== item.teacherId"
               @click="toggleSelect(item)"
@@ -598,7 +610,6 @@ function handleTabChange(e: any) {
             <button
               class="ios-btn flex-1"
               :class="item.isChose ? 'ios-btn--primary' : (item.finalTeacher && item.finalTeacher !== item.teacherId ? 'ios-btn--secondary' : 'ios-btn--secondary')"
-              :style="item.isChose ? { backgroundColor: IOS_BLUE } : {}"
               style="padding: 18rpx 18rpx; font-size: 28rpx;"
               :disabled="item.finalTeacher.length > 0 && item.finalTeacher !== item.teacherId"
               @click="toggleSelect(item)"
@@ -691,13 +702,12 @@ function handleTabChange(e: any) {
         </view>
       </view>
       <!-- 底部固定导航栏 -->
-      <view class="ios-bottom-nav fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white px-3 py-4">
+      <view class="ios-bottom-nav fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white px-3 py-4" :style="{ paddingBottom: (safeAreaInsets.bottom + 16) + 'px' }">
         <button
           v-for="item in navItems"
           :key="item.name"
           class="ios-btn ios-bottom-nav-btn"
           :class="tabbar === item.name ? 'ios-btn--primary' : 'ios-btn--secondary'"
-          :style="tabbar === item.name ? { backgroundColor: IOS_BLUE } : {}"
           @click="() => { tabbar = item.name; handleTabChange(item.name) }"
         >
           {{ item.label }}
@@ -736,17 +746,6 @@ function handleTabChange(e: any) {
   gap: 60rpx;
   font-size: 23rpx;
   color: #6b7280;
-}
-.ios-bottom-nav {
-  display: flex;
-  gap: 8rpx;
-}
-.ios-bottom-nav-btn {
-  flex: 1;
-  width: auto;
-  min-width: 0;
-  padding: 16rpx 10rpx;
-  font-size: 24rpx;
 }
 .ios-summary-grid {
   display: grid;

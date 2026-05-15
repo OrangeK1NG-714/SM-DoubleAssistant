@@ -126,7 +126,7 @@ function handleClose() {
         </view>
       </view>
       <view class="dialog-footer mt-4 flex justify-center">
-        <button class="close-btn w-full rounded bg-gray-200 py-2 text-gray-800" @click="handleClose">
+        <button class="close-btn ios-btn ios-btn--secondary w-full" @click="handleClose">
           关闭
         </button>
       </view>
@@ -153,29 +153,29 @@ function handleClose() {
   width: 90%;
   max-width: 400px;
   overflow-y: auto;
-  border-radius: 8px;
+  border-radius: 32rpx;
   background-color: white;
-  padding: 20px;
+  padding: 30rpx;
 }
 
 .dialog-header {
-  margin-bottom: 16px;
+  margin-bottom: 24rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
 .close-icon {
-  font-size: 20px;
+  font-size: 40rpx;
   cursor: pointer;
 }
 
 .info-form {
-  margin-bottom: 16px;
+  margin-bottom: 24rpx;
 }
 
 .form-item {
-  margin-bottom: 12px;
+  margin-bottom: 20rpx;
   display: flex;
 }
 
@@ -189,16 +189,14 @@ function handleClose() {
 }
 
 .dialog-footer {
-  margin-top: 16px;
+  margin-top: 24rpx;
   display: flex;
   justify-content: center;
 }
 
 .close-btn {
   width: 100%;
-  border-radius: 4px;
-  background-color: #e5e5e5;
-  padding: 8px 0;
-  color: #333;
+  border-radius: 28rpx;
+  padding: 22rpx 24rpx;
 }
 </style>

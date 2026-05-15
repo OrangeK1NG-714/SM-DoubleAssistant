@@ -13,35 +13,14 @@
 <script lang="ts" setup>
 import { getUserInfo, login } from '@/api/login'
 import { saveOpenid } from '@/api/stdInfo'
-import { IOS_BLUE } from '@/constants/theme'
+import { useSafeArea } from '@/composables/useSafeArea'
 import { useUserStore } from '@/store/user'
 
 defineOptions({
   name: 'Home',
 })
 
-// 获取屏幕边界到安全区域距离
-let safeAreaInsets
-let systemInfo
-
-// #ifdef MP-WEIXIN
-// 微信小程序使用新的API
-systemInfo = uni.getWindowInfo()
-safeAreaInsets = systemInfo.safeArea
-  ? {
-      top: systemInfo.safeArea.top,
-      right: systemInfo.windowWidth - systemInfo.safeArea.right,
-      bottom: systemInfo.windowHeight - systemInfo.safeArea.bottom,
-      left: systemInfo.safeArea.left,
-    }
-  : null
-// #endif
-
-// #ifndef MP-WEIXIN
-// 其他平台继续使用uni API
-systemInfo = uni.getSystemInfoSync()
-safeAreaInsets = systemInfo.safeAreaInsets
-// #endif
+const safeAreaInsets = useSafeArea()
 
 // 表单数据
 const username = ref('')
@@ -155,7 +134,7 @@ async function handleResetPassword() {
 <template>
   <view
     class="ios-page"
-    :style="{ paddingTop: `${safeAreaInsets?.top || 0}px` }"
+    :style="{ paddingTop: safeAreaInsets.top + 'px' }"
   >
     <view class="px-5 pt-8">
       <view class="ios-title">
@@ -180,6 +159,7 @@ async function handleResetPassword() {
               v-model="username"
               class="ios-input"
               placeholder="学号 / 工号"
+              :cursor-spacing="20"
               :disabled="isSubmitting"
               @focus="focusedField = 'username'"
               @blur="focusedField = null"
@@ -202,6 +182,7 @@ async function handleResetPassword() {
               class="ios-input"
               placeholder="请输入密码"
               password
+              :cursor-spacing="20"
               :disabled="isSubmitting"
               @focus="focusedField = 'password'"
               @blur="focusedField = null"
@@ -221,7 +202,6 @@ async function handleResetPassword() {
       <view class="mt-8 space-y-3">
         <button
           class="ios-btn ios-btn--primary"
-          :style="{ backgroundColor: IOS_BLUE }"
           :disabled="isSubmitting"
           @click="handleLogin"
         >
@@ -279,73 +259,7 @@ async function handleResetPassword() {
 </template>
 
 <style scoped>
-.ios-page {
-  min-height: 100vh;
-  background: #f2f2f7;
-}
-.ios-title {
-  font-size: 44rpx;
-  font-weight: 700;
-  color: #111827;
-  letter-spacing: -0.02em;
-}
-.ios-subtitle {
-  font-size: 26rpx;
-  color: #6b7280;
-  line-height: 1.5;
-}
-.ios-card {
-  background: #ffffff;
-  border-radius: 32rpx;
-  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.06);
-  overflow: hidden;
-}
-.ios-divider {
-  height: 1px;
-  background: rgba(17, 24, 39, 0.08);
-  margin-left: 28rpx;
-}
-.ios-cell {
-  display: flex;
-  align-items: center;
-  padding: 22rpx 28rpx;
-}
-.ios-cell--focused {
-  background: rgba(10, 132, 255, 0.06);
-}
-.ios-cell__label {
-  width: 120rpx;
-  font-size: 28rpx;
-  color: #111827;
-}
-.ios-cell__content {
-  flex: 1;
-}
-.ios-input {
-  width: 100%;
-  font-size: 28rpx;
-  color: #111827;
-}
 .ios-btn {
   width: 100%;
-  border-radius: 28rpx;
-  padding: 22rpx 24rpx;
-  font-size: 30rpx;
-  font-weight: 600;
-  line-height: 1;
-}
-.ios-btn[disabled] {
-  opacity: 0.6;
-}
-.ios-btn--primary {
-  color: #ffffff;
-}
-.ios-btn--secondary {
-  background: rgba(17, 24, 39, 0.06);
-  color: #111827;
-}
-.ios-btn:active {
-  transform: scale(0.99);
-  opacity: 0.92;
 }
 </style>

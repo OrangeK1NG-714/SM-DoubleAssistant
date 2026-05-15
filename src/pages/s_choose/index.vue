@@ -4,6 +4,7 @@
   layout: "default",
   style: {
     navigationBarTitleText: "选择页面",
+    enablePullDownRefresh: true,
   },
 }
 </route>
@@ -11,7 +12,7 @@
 <script lang="ts" setup>
 import type { IRecommendTeacherItem } from '@/api/stdInfo'
 
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app'
 // import { ref } from 'vue'
 import { getRecommendTeachers, getTeacherListInActivity, selectTeacher } from '@/api/stdInfo'
 import { getMaxSelectNum, getTeacherList } from '@/api/teaInfo'
@@ -22,11 +23,13 @@ import {
 } from '@/api/useraction'
 import { SUBSCRIBE_TEMPLATE_ID } from '@/constants/config'
 import { IOS_BLUE } from '@/constants/theme'
+import { useSafeArea } from '@/composables/useSafeArea'
 import { useUserStore } from '@/store/user'
 import TeacherCard from '@/components/TeacherCard.vue'
 import { getEnvBaseUrl } from '@/utils'
 
 const store = useUserStore()
+const safeAreaInsets = useSafeArea()
 
 const localhost = getEnvBaseUrl()
 
@@ -446,119 +449,123 @@ async function handleAiRecommend() {
   }
 }
 
+async function loadData() {
+  calculateScrollHeight()
+  const store = useUserStore()
+  // 中本判断
+  if (store.userInfo.username[store.userInfo.username.length - 5] === '8') {
+    isEight.value = true
+  }
+
+  const res: any = await getTeacherList()
+  const teacherList: any = await getTeacherListInActivity(
+    useUserStore().userInfo.activityId,
+  )
+  // 提取teacherList中所有的teacherId
+  const existingTeacherIds = teacherList.map(teacher => teacher.teacherId)
+
+  // 获取所有导师的最大选择学生数
+  await Promise.all(res.data.map(async (item) => {
+    const result: any = await getMaxSelectNum(
+      item.teacherId,
+      useUserStore().userInfo.activityId,
+    )
+    if (result.maxSelectNum) {
+      item.maxSelectedNum = result.maxSelectNum
+    }
+  }))
+  // 过滤res.data，只保留存在于existingTeacherIds中的老师
+  const filteredTeachers = res.data.filter(teacher =>
+    existingTeacherIds.includes(teacher.teacherId),
+  )
+
+  const requests = filteredTeachers.map(async (teacher) => {
+    try {
+      // const response =
+      const response: any = await getChooseCount(
+        teacher.teacherId,
+        useUserStore().userInfo.activityId,
+      )
+      if (response.length > 0) {
+        let selectedNum = 0
+        for (let i = 0; i < response.length; i++) {
+          if (response[i].isChose) {
+            selectedNum++
+          }
+        }
+        // if (teacher.maxSelectedNum === selectedNum) {
+        //   return
+        // }
+        teacher.selectedNum = selectedNum
+      }
+      return {
+        ...teacher,
+        number: response.length,
+        selected: false,
+      }
+    }
+    catch (error) {
+      console.error(`获取老师 ${teacher.name} 的选择学生数失败:`, error)
+      // 如果请求失败，默认设为 0
+      return {
+        ...teacher,
+        number: 0,
+        selected: false,
+      }
+    }
+  })
+  // 等待所有异步请求完成
+  const processedTeachers = await Promise.all(requests)
+
+  // 使用filter方法过滤掉已达到最大选择数的导师数据
+  // 过滤条件：保留那些maxSelectedNum和selectedNum不相等的项
+  const processedTeachersAfterFilter = processedTeachers.filter((item) => {
+    // 如果maxSelectedNum和selectedNum存在且相等，则过滤掉
+    if (
+      item.maxSelectedNum !== undefined
+      && item.selectedNum !== undefined
+      && item.maxSelectedNum === item.selectedNum
+    ) {
+      return false
+    }
+    // 其他情况保留
+    return true
+  })
+  // 后续可以使用filteredTeachers替代processedTeachers进行分类和显示
+  // 根据teacherType分类数据
+  majorList.value = []
+  publicList.value = []
+  peopleList.value = []
+
+  processedTeachersAfterFilter.forEach((teacher) => {
+    switch (teacher.teacherType) {
+      case '0':
+        majorList.value.push(teacher)
+        break
+      case '1':
+        publicList.value.push(teacher)
+        break
+      case '2':
+        peopleList.value.push(teacher)
+        break
+      default:
+        console.warn(`未知的教师类型: ${teacher.teacherType}`, teacher)
+    }
+  })
+
+  // 查询活动详情
+  const res1: any = await getActivityDetail(useUserStore().userInfo.activityId)
+  // console.log(res1)
+  currentActivityTime.value.stdChooseEndDate = new Date(res1.stdChooseEndDate)
+  currentActivityTime.value.stdChooseStartDate = new Date(
+    res1.stdChooseStartDate,
+  )
+}
+
 onLoad(async () => {
   try {
     uni.showLoading({ title: '加载中...' })
-    calculateScrollHeight()
-    const store = useUserStore()
-    // 中本判断
-    if (store.userInfo.username[store.userInfo.username.length - 5] === '8') {
-      isEight.value = true
-    }
-
-    const res: any = await getTeacherList()
-    const teacherList: any = await getTeacherListInActivity(
-      useUserStore().userInfo.activityId,
-    )
-    // 提取teacherList中所有的teacherId
-    const existingTeacherIds = teacherList.map(teacher => teacher.teacherId)
-
-    // 获取所有导师的最大选择学生数
-    await Promise.all(res.data.map(async (item) => {
-      const result: any = await getMaxSelectNum(
-        item.teacherId,
-        useUserStore().userInfo.activityId,
-      )
-      if (result.maxSelectNum) {
-        item.maxSelectedNum = result.maxSelectNum
-      }
-    }))
-    // 过滤res.data，只保留存在于existingTeacherIds中的老师
-    const filteredTeachers = res.data.filter(teacher =>
-      existingTeacherIds.includes(teacher.teacherId),
-    )
-
-    const requests = filteredTeachers.map(async (teacher) => {
-      try {
-        // const response =
-        const response: any = await getChooseCount(
-          teacher.teacherId,
-          useUserStore().userInfo.activityId,
-        )
-        if (response.length > 0) {
-          let selectedNum = 0
-          for (let i = 0; i < response.length; i++) {
-            if (response[i].isChose) {
-              selectedNum++
-            }
-          }
-          // if (teacher.maxSelectedNum === selectedNum) {
-          //   return
-          // }
-          teacher.selectedNum = selectedNum
-        }
-        return {
-          ...teacher,
-          number: response.length,
-          selected: false,
-        }
-      }
-      catch (error) {
-        console.error(`获取老师 ${teacher.name} 的选择学生数失败:`, error)
-        // 如果请求失败，默认设为 0
-        return {
-          ...teacher,
-          number: 0,
-          selected: false,
-        }
-      }
-    })
-    // 等待所有异步请求完成
-    const processedTeachers = await Promise.all(requests)
-
-    // 使用filter方法过滤掉已达到最大选择数的导师数据
-    // 过滤条件：保留那些maxSelectedNum和selectedNum不相等的项
-    const processedTeachersAfterFilter = processedTeachers.filter((item) => {
-      // 如果maxSelectedNum和selectedNum存在且相等，则过滤掉
-      if (
-        item.maxSelectedNum !== undefined
-        && item.selectedNum !== undefined
-        && item.maxSelectedNum === item.selectedNum
-      ) {
-        return false
-      }
-      // 其他情况保留
-      return true
-    })
-    // 后续可以使用filteredTeachers替代processedTeachers进行分类和显示
-    // 根据teacherType分类数据
-    majorList.value = []
-    publicList.value = []
-    peopleList.value = []
-
-    processedTeachersAfterFilter.forEach((teacher) => {
-      switch (teacher.teacherType) {
-        case '0':
-          majorList.value.push(teacher)
-          break
-        case '1':
-          publicList.value.push(teacher)
-          break
-        case '2':
-          peopleList.value.push(teacher)
-          break
-        default:
-          console.warn(`未知的教师类型: ${teacher.teacherType}`, teacher)
-      }
-    })
-
-    // 查询活动详情
-    const res1: any = await getActivityDetail(useUserStore().userInfo.activityId)
-    // console.log(res1)
-    currentActivityTime.value.stdChooseEndDate = new Date(res1.stdChooseEndDate)
-    currentActivityTime.value.stdChooseStartDate = new Date(
-      res1.stdChooseStartDate,
-    )
+    await loadData()
   }
   catch (error) {
     uni.showToast({ title: '数据加载失败', icon: 'none' })
@@ -567,10 +574,19 @@ onLoad(async () => {
     uni.hideLoading()
   }
 })
+
+onPullDownRefresh(async () => {
+  majorList.value = []
+  publicList.value = []
+  peopleList.value = []
+  selectedMentors.value = []
+  await loadData()
+  uni.stopPullDownRefresh()
+})
 </script>
 
 <template>
-  <view class="ios-page s-choose-page">
+  <view class="ios-page s-choose-page" :style="{ paddingTop: safeAreaInsets.top + 'px' }">
     <view class="px-5 pt-6">
       <view class="ios-title">
         选择导师
@@ -667,20 +683,19 @@ onLoad(async () => {
 
     <!-- 底部固定导航栏 -->
     <view
-      class="bottom-nav fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white px-3 py-4"
+      class="ios-bottom-nav fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white px-3 py-4"
+      :style="{ paddingBottom: (safeAreaInsets.bottom + 16) + 'px' }"
     >
       <button
-        class="ios-btn nav-switch-btn mx-1 flex-1"
+        class="ios-btn ios-bottom-nav-btn mx-1"
         :class="isProgressPage ? 'ios-btn--secondary' : 'ios-btn--primary'"
-        :style="isProgressPage ? {} : { backgroundColor: IOS_BLUE }"
         @tap="navigateToMyChoices"
       >
         我的志愿
       </button>
       <button
-        class="ios-btn nav-switch-btn mx-1 flex-1"
+        class="ios-btn ios-bottom-nav-btn mx-1"
         :class="isProgressPage ? 'ios-btn--primary' : 'ios-btn--secondary'"
-        :style="isProgressPage ? { backgroundColor: IOS_BLUE } : {}"
         @tap="navigateToProgress"
       >
         选择页面
@@ -726,7 +741,6 @@ onLoad(async () => {
       </view>
       <button
         class="ios-btn ios-btn--primary mt-6 w-full"
-        :style="{ backgroundColor: IOS_BLUE }"
         @tap="handleSubmit"
       >
         确认提交
@@ -787,7 +801,6 @@ onLoad(async () => {
           :class="
             currentTeacher.selected ? 'ios-btn--secondary' : 'ios-btn--primary'
           "
-          :style="currentTeacher.selected ? {} : { backgroundColor: IOS_BLUE }"
           @tap="toggleSelect(currentTeacher.teacherId)"
         >
           {{ currentTeacher.selected ? "取消选择" : "选择该导师" }}
@@ -904,16 +917,4 @@ onLoad(async () => {
   margin-right: 0;
 }
 
-.bottom-nav {
-  display: flex;
-  align-items: center;
-  gap: 8rpx;
-}
-
-.nav-switch-btn {
-  width: auto;
-  min-width: 0;
-  padding: 20rpx 12rpx;
-  font-size: 32rpx;
-}
 </style>
