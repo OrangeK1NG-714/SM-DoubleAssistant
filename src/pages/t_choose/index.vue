@@ -11,7 +11,7 @@
 <script lang="ts" setup>
 import { getStudentMsg } from '@/api/stdInfo'
 import { cancelSelect, getMaxSelectNum, getSelectState, selectStudent, updateChoose } from '@/api/teaInfo'
-import { getActivityList, getChooseCount, getMaxChooseNum } from '@/api/useraction'
+import { getActivityList, getChooseCount } from '@/api/useraction'
 import { useSafeArea } from '@/composables/useSafeArea'
 import { IOS_BLUE } from '@/constants/theme'
 import { useUserStore } from '@/store/user'
@@ -65,7 +65,7 @@ const currentTabList = computed(() => {
 async function loadData() {
   calculateScrollHeight()
   const res: any = await getChooseCount(userStore.userInfo.username, userStore.userInfo.activityId)
-  await categorizeByPriority(res)
+  await categorizeByPriority(res.data || res)
   firstChoseStudentList.value = firstList.value.filter(item => item.finalTeacher === item.teacherId)
   secondChoseStudentList.value = secondList.value.filter(item => item.finalTeacher === item.teacherId)
   thirdChoseStudentList.value = thirdList.value.filter(item => item.finalTeacher === item.teacherId)
@@ -73,11 +73,12 @@ async function loadData() {
   selectedNum.value = firstChoseStudentList.value.length + secondChoseStudentList.value.length + thirdChoseStudentList.value.length
 
   const maxSelectedNum: any = await getMaxSelectNum(userStore.userInfo.username, userStore.userInfo.activityId)
-  userStore.userInfo.maxSelectNum = maxSelectedNum.maxSelectNum
+  userStore.userInfo.maxSelectNum = (maxSelectedNum.data ?? maxSelectedNum).maxSelectNum
 
   // 加载时间数据
   const teacherActivityList: any = await getActivityList()
-  thisActivity.value = teacherActivityList.find(item => item._id === userStore.userInfo.activityId)
+  const activityArr = teacherActivityList.data || teacherActivityList
+  thisActivity.value = activityArr.find(item => item._id === userStore.userInfo.activityId)
 
   formattedDate.value = formatDate(new Date())
 }
@@ -205,47 +206,34 @@ function formatDate(date: Date): string {
 
 function calculateScrollHeight() {
   const sys = uni.getSystemInfoSync()
-  scrollHeight.value = sys.windowHeight - 300 - safeAreaInsets.top
+  const topArea = safeAreaInsets.top + 240
+  const bottomArea = 80 + 64 + (safeAreaInsets.bottom || 16)
+  scrollHeight.value = sys.windowHeight - topArea - bottomArea
 }
 
 function switchTab(e: any) {
-  const targetTab = e.currentTarget.dataset.tab
+  activeTab.value = e.currentTarget.dataset.tab
+}
 
-  // 检查当前时间是否在允许选择的时间范围内
+// 检查某个志愿 tab 是否在允许操作的时间范围内
+function isInSelectTime(tabName: string): boolean {
+  if (!thisActivity.value) return true
   const currentTime = new Date().getTime()
-  let isInTime = false
-
-  if (targetTab === 'first' && thisActivity.value) {
-    const start = new Date(thisActivity.value.firstChooseStartDate).getTime()
-    const end = new Date(thisActivity.value.firstChooseEndDate).getTime()
-    isInTime = currentTime >= start && currentTime <= end
+  let start = 0
+  let end = 0
+  if (tabName === 'first') {
+    start = new Date(thisActivity.value.firstChooseStartDate).getTime()
+    end = new Date(thisActivity.value.firstChooseEndDate).getTime()
   }
-  else if (targetTab === 'second' && thisActivity.value) {
-    const start = new Date(thisActivity.value.secondChooseStartDate).getTime()
-    const end = new Date(thisActivity.value.secondChooseEndDate).getTime()
-    isInTime = currentTime >= start && currentTime <= end
+  else if (tabName === 'second') {
+    start = new Date(thisActivity.value.secondChooseStartDate).getTime()
+    end = new Date(thisActivity.value.secondChooseEndDate).getTime()
   }
-  else if (targetTab === 'third' && thisActivity.value) {
-    const start = new Date(thisActivity.value.thirdChooseStartDate).getTime()
-    const end = new Date(thisActivity.value.thirdChooseEndDate).getTime()
-    isInTime = currentTime >= start && currentTime <= end
+  else if (tabName === 'third') {
+    start = new Date(thisActivity.value.thirdChooseStartDate).getTime()
+    end = new Date(thisActivity.value.thirdChooseEndDate).getTime()
   }
-
-  // 如果没有活动数据，默认允许切换（防止系统出错时无法操作）
-  if (!thisActivity.value) {
-    isInTime = true
-  }
-
-  if (isInTime) {
-    activeTab.value = targetTab
-  }
-  else {
-    uni.showToast({
-      title: `不在${targetTab === 'first' ? '第一' : targetTab === 'second' ? '第二' : '第三'}志愿选择时间内`,
-      icon: 'none',
-      duration: 2000,
-    })
-  }
+  return currentTime >= start && currentTime <= end
 }
 
 function viewDetail(data: any) {
@@ -267,113 +255,98 @@ async function toggleSelect(item: any) {
   if (isToggling.value) return
   isToggling.value = true
   try {
-    // 检查当前是否在允许选择的时间范围内
-    const currentTime = new Date().getTime()
-    let isInTime = false
+    // #19: 时间检查仅在操作时生效，不限制查看
     const targetTab = item.order === 1 ? 'first' : item.order === 2 ? 'second' : 'third'
-
-    if (targetTab === 'first' && thisActivity.value) {
-      const start = new Date(thisActivity.value.firstChooseStartDate).getTime()
-      const end = new Date(thisActivity.value.firstChooseEndDate).getTime()
-      isInTime = currentTime >= start && currentTime <= end
-    }
-    else if (targetTab === 'second' && thisActivity.value) {
-      const start = new Date(thisActivity.value.secondChooseStartDate).getTime()
-      const end = new Date(thisActivity.value.secondChooseEndDate).getTime()
-      isInTime = currentTime >= start && currentTime <= end
-    }
-    else if (targetTab === 'third' && thisActivity.value) {
-      const start = new Date(thisActivity.value.thirdChooseStartDate).getTime()
-      const end = new Date(thisActivity.value.thirdChooseEndDate).getTime()
-      isInTime = currentTime >= start && currentTime <= end
-    }
-
-    // 如果没有活动数据，默认允许操作（防止系统出错时无法操作）
-    if (!thisActivity.value) {
-      isInTime = true
-    }
-
-    if (!isInTime) {
-      uni.showToast({
-        title: `不在${targetTab === 'first' ? '第一' : targetTab === 'second' ? '第二' : '第三'}志愿选择时间内`,
-        icon: 'none',
-        duration: 2000,
-      })
+    if (!isInSelectTime(targetTab)) {
+      const label = targetTab === 'first' ? '第一' : targetTab === 'second' ? '第二' : '第三'
+      uni.showToast({ title: `不在${label}志愿选择时间内`, icon: 'none', duration: 2000 })
       return
     }
 
-    try {
-      if (item.isChose) {
-        const confirmCancel = await new Promise<boolean>((resolve) => {
-          uni.showModal({
-            title: '确认取消',
-            content: `确定不再选择学生「${item.data?.name || item.studentId}」吗？`,
-            confirmText: '确定',
-            cancelText: '再想想',
-            success: (res) => {
-              resolve(!!res.confirm)
-            },
-            fail: () => {
-              resolve(false)
-            },
-          })
+    if (item.isChose) {
+      const confirmCancel = await new Promise<boolean>((resolve) => {
+        uni.showModal({
+          title: '确认取消',
+          content: `确定不再选择学生「${item.data?.name || item.studentId}」吗？`,
+          confirmText: '确定',
+          cancelText: '再想想',
+          success: res => resolve(!!res.confirm),
+          fail: () => resolve(false),
         })
+      })
+      if (!confirmCancel) return
 
-        if (!confirmCancel)
-          return
-
-        // 先 updateChoose（toggle isChose），再 cancelSelect（删除 Final）
-        // 这样如果 cancelSelect 失败，Choose.isChose 已被置为 false，不会出现不一致
-        await updateChoose({
-          studentId: item.studentId,
-          teacherId: item.teacherId,
-          activityId: item.activityId,
-        })
+      // #4: 先 updateChoose，再 cancelSelect；cancelSelect 失败时回滚
+      await updateChoose({
+        studentId: item.studentId,
+        teacherId: item.teacherId,
+        activityId: item.activityId,
+      })
+      try {
         await cancelSelect({
           studentId: item.studentId,
           teacherId: userStore.userInfo.username,
           activityId: item.activityId,
         })
-        item.isChose = false
-        item.finalTeacher = ''
-        selectedNum.value--
       }
-      else {
-        if (selectedNum.value >= userStore.userInfo.maxSelectNum) {
-          uni.showToast({
-            title: `已达到最大选择人数限制(${userStore.userInfo.maxSelectNum}人)`,
-            icon: 'none',
-          })
-          return
-        }
-
-        // 先 selectStudent（创建 Final），再 updateChoose（toggle isChose）
-        await selectStudent({
-          studentId: item.studentId,
-          teacherId: item.teacherId,
-          activityId: item.activityId,
-          data: item.data,
-          order: item.order,
-        })
+      catch (cancelError) {
+        // 回滚 updateChoose
         await updateChoose({
           studentId: item.studentId,
           teacherId: item.teacherId,
           activityId: item.activityId,
         })
-
-        item.isChose = true
-        item.finalTeacher = userStore.userInfo.username
-        selectedNum.value++
+        throw cancelError
+      }
+      item.isChose = false
+      item.finalTeacher = ''
+      selectedNum.value--
+    }
+    else {
+      if (selectedNum.value >= userStore.userInfo.maxSelectNum) {
+        uni.showToast({
+          title: `已达到最大选择人数限制(${userStore.userInfo.maxSelectNum}人)`,
+          icon: 'none',
+        })
+        return
       }
 
-      // 重新计算三个志愿学生列表
-      firstChoseStudentList.value = firstList.value.filter(item => item.finalTeacher === item.teacherId)
-      secondChoseStudentList.value = secondList.value.filter(item => item.finalTeacher === item.teacherId)
-      thirdChoseStudentList.value = thirdList.value.filter(item => item.finalTeacher === item.teacherId)
+      // #4: 先 selectStudent，再 updateChoose；updateChoose 失败时回滚
+      await selectStudent({
+        studentId: item.studentId,
+        teacherId: item.teacherId,
+        activityId: item.activityId,
+        data: item.data,
+        order: item.order,
+      })
+      try {
+        await updateChoose({
+          studentId: item.studentId,
+          teacherId: item.teacherId,
+          activityId: item.activityId,
+        })
+      }
+      catch (updateError) {
+        // 回滚 selectStudent
+        await cancelSelect({
+          studentId: item.studentId,
+          teacherId: userStore.userInfo.username,
+          activityId: item.activityId,
+        })
+        throw updateError
+      }
+      item.isChose = true
+      item.finalTeacher = userStore.userInfo.username
+      selectedNum.value++
     }
-    catch (error) {
-      uni.showToast({ title: '操作失败，请重试', icon: 'none' })
-    }
+
+    // 重新计算三个志愿学生列表
+    firstChoseStudentList.value = firstList.value.filter(i => i.finalTeacher === i.teacherId)
+    secondChoseStudentList.value = secondList.value.filter(i => i.finalTeacher === i.teacherId)
+    thirdChoseStudentList.value = thirdList.value.filter(i => i.finalTeacher === i.teacherId)
+  }
+  catch (error) {
+    uni.showToast({ title: '操作失败，请重试', icon: 'none' })
   }
   finally {
     isToggling.value = false
@@ -403,11 +376,12 @@ async function categorizeByPriority(res: any) {
       })
       // console.log(chooseState)
       // console.log(chooseState.length)
-      if (chooseState.length > 0) {
+      const chooseData = chooseState.data || chooseState
+      if (chooseData.length > 0) {
         return {
           ...item,
           isChose: true,
-          finalTeacher: chooseState[0].teacherId,
+          finalTeacher: chooseData[0].teacherId,
           data: response.data,
         }
       }
@@ -471,7 +445,7 @@ async function categorizeByPriority(res: any) {
 
 function handleTabChange(e: any) {
   if (e !== 't_choose') {
-    uni.redirectTo({
+    uni.navigateTo({
       url: `/pages/${e}/index`,
     })
   }
