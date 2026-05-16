@@ -44,11 +44,11 @@ const emit = defineEmits<{
       </button>
       <button
         class="ios-btn flex-1"
-        :class="teacher.selected ? 'ios-btn--secondary' : 'ios-btn--primary'"
+        :class="teacher.selected ? 'ios-btn--primary' : 'ios-btn--secondary'"
         style="padding: 18rpx 18rpx; font-size: 28rpx"
         @tap="emit('toggleSelect', teacher.teacherId)"
       >
-        {{ teacher.selected ? "已选" : "选择" }}
+        {{ teacher.selected ? "已选 ✓" : "选择" }}
       </button>
     </view>
   </view>

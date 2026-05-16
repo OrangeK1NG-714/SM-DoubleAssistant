@@ -27,7 +27,7 @@ const isProgressPage = ref(false)
 
 // 导航到选择页面
 function navigateToProgress() {
-  uni.redirectTo({ url: '/pages/s_choose/index' })
+  uni.navigateTo({ url: '/pages/s_choose/index' })
 }
 
 // 导航到我的志愿
@@ -46,7 +46,8 @@ function navigateHome() {
 }
 
 async function loadData() {
-  const res: any = await getChooseCountWithActivityId(userStore.userInfo.activityId, userStore.userInfo.username)
+  const resRaw: any = await getChooseCountWithActivityId(userStore.userInfo.activityId, userStore.userInfo.username)
+  const res = resRaw.data || resRaw
   if (res.length === 0) {
     uni.showToast({
       title: '您还未选择志愿',
@@ -67,8 +68,9 @@ async function loadData() {
     ...item,
     mentor_name: teacherNameMap[item.teacherId],
   }))
-  if (finalChoice.data) {
-    mentor.value = teacherNameMap[finalChoice.teacherId]
+  const finalData = finalChoice.data || finalChoice
+  if (finalData) {
+    mentor.value = teacherNameMap[finalData.teacherId]
   }
 }
 

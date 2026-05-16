@@ -11,184 +11,139 @@ interface Emits {
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
+const showPopup = computed({
+  get: () => props.visible,
+  set: () => emit('close'),
+})
+
 function handleClose() {
   emit('close')
 }
 </script>
 
 <template>
-  <view v-if="visible" class="student-dialog fixed inset-0 z-999 flex items-center justify-center bg-black bg-opacity-50" @click="handleClose">
-    <view class="dialog-content max-h-[80vh] max-w-2xl w-[90%] overflow-y-auto rounded-lg bg-white p-5" @click.stop>
-      <view class="dialog-header mb-4 flex items-center justify-between">
-        <text class="text-lg font-bold">
+  <wd-popup
+    v-model="showPopup"
+    custom-style="border-radius:40rpx;"
+    position="bottom"
+  >
+    <view class="ios-sheet">
+      <view class="ios-sheet__handle" />
+      <view class="px-3 pb-2">
+        <view class="text-[32rpx] text-[#111827] font-700">
           学生详情
-        </text>
-        <text class="close-icon text-xl" @click="handleClose">
-          ×
-        </text>
-      </view>
-      <view class="info-form">
-        <view class="form-item mb-3 flex">
-          <view class="label w-1/3 text-gray-600">
-            姓名：
-          </view>
-          <view class="value w-2/3">
-            {{ info?.name || '未设置' }}
-          </view>
         </view>
-        <view class="form-item mb-3 flex">
-          <view class="label w-1/3 text-gray-600">
-            学号：
-          </view>
-          <view class="value w-2/3">
-            {{ info?.studentId || '未设置' }}
-          </view>
-        </view>
-        <view class="form-item mb-3 flex">
-          <view class="label w-1/3 text-gray-600">
-            性别：
-          </view>
-          <view class="value w-2/3">
-            {{ info?.gender || '未设置' }}
-          </view>
-        </view>
-        <view class="form-item mb-3 flex">
-          <view class="label w-1/3 text-gray-600">
-            年级：
-          </view>
-          <view class="value w-2/3">
-            {{ info?.grade || '未设置' }}
-          </view>
-        </view>
-        <view class="form-item mb-3 flex">
-          <view class="label w-1/3 text-gray-600">
-            班级：
-          </view>
-          <view class="value w-2/3">
-            {{ info?.classNum || '未设置' }}
-          </view>
-        </view>
-        <view class="form-item mb-3 flex">
-          <view class="label w-1/3 text-gray-600">
-            电话：
-          </view>
-          <view class="value w-2/3">
-            {{ info?.phone || '未设置' }}
-          </view>
-        </view>
-        <view class="form-item mb-3 flex">
-          <view class="label w-1/3 text-gray-600">
-            QQ：
-          </view>
-          <view class="value w-2/3">
-            {{ info?.qq || '未设置' }}
-          </view>
-        </view>
-        <view class="form-item mb-3 flex">
-          <view class="label w-1/3 text-gray-600">
-            微信：
-          </view>
-          <view class="value w-2/3">
-            {{ info?.wechat || '未设置' }}
-          </view>
-        </view>
-        <view class="form-item mb-3 flex">
-          <view class="label w-1/3 text-gray-600">
-            GPA：
-          </view>
-          <view class="value w-2/3">
-            {{ info?.gpa || '未设置' }}
-          </view>
-        </view>
-        <view class="form-item mb-3 flex">
-          <view class="label w-1/3 text-gray-600">
-            方向：
-          </view>
-          <view class="value w-2/3">
-            {{ info?.direction || '未设置' }}
-          </view>
-        </view>
-        <view class="form-item mb-3 flex">
-          <view class="label w-1/3 text-gray-600">
-            简历：
-          </view>
-          <view class="value w-2/3">
-            {{ info?.resume || '未设置' }}
-          </view>
+        <view class="mt-2 text-[24rpx] text-[#6B7280]">
+          {{ info?.name || '未设置' }} 的基本信息
         </view>
       </view>
-      <view class="dialog-footer mt-4 flex justify-center">
-        <button class="close-btn ios-btn ios-btn--secondary w-full" @click="handleClose">
+      <scroll-view scroll-y class="px-3" style="max-height: 60vh">
+        <view class="ios-card" style="padding: 0; box-shadow: none;">
+          <view class="ios-cell">
+            <view class="ios-cell__label" style="width: 160rpx;">
+              姓名
+            </view>
+            <view class="ios-cell__content text-[28rpx] text-[#111827]">
+              {{ info?.name || '未设置' }}
+            </view>
+          </view>
+          <view class="ios-divider" style="margin-left: 28rpx;" />
+          <view class="ios-cell">
+            <view class="ios-cell__label" style="width: 160rpx;">
+              学号
+            </view>
+            <view class="ios-cell__content text-[28rpx] text-[#111827]">
+              {{ info?.studentId || '未设置' }}
+            </view>
+          </view>
+          <view class="ios-divider" style="margin-left: 28rpx;" />
+          <view class="ios-cell">
+            <view class="ios-cell__label" style="width: 160rpx;">
+              性别
+            </view>
+            <view class="ios-cell__content text-[28rpx] text-[#111827]">
+              {{ info?.gender || '未设置' }}
+            </view>
+          </view>
+          <view class="ios-divider" style="margin-left: 28rpx;" />
+          <view class="ios-cell">
+            <view class="ios-cell__label" style="width: 160rpx;">
+              年级
+            </view>
+            <view class="ios-cell__content text-[28rpx] text-[#111827]">
+              {{ info?.grade || '未设置' }}
+            </view>
+          </view>
+          <view class="ios-divider" style="margin-left: 28rpx;" />
+          <view class="ios-cell">
+            <view class="ios-cell__label" style="width: 160rpx;">
+              班级
+            </view>
+            <view class="ios-cell__content text-[28rpx] text-[#111827]">
+              {{ info?.classNum || '未设置' }}
+            </view>
+          </view>
+          <view class="ios-divider" style="margin-left: 28rpx;" />
+          <view class="ios-cell">
+            <view class="ios-cell__label" style="width: 160rpx;">
+              电话
+            </view>
+            <view class="ios-cell__content text-[28rpx] text-[#111827]">
+              {{ info?.phone || '未设置' }}
+            </view>
+          </view>
+          <view class="ios-divider" style="margin-left: 28rpx;" />
+          <view class="ios-cell">
+            <view class="ios-cell__label" style="width: 160rpx;">
+              QQ
+            </view>
+            <view class="ios-cell__content text-[28rpx] text-[#111827]">
+              {{ info?.qq || '未设置' }}
+            </view>
+          </view>
+          <view class="ios-divider" style="margin-left: 28rpx;" />
+          <view class="ios-cell">
+            <view class="ios-cell__label" style="width: 160rpx;">
+              微信
+            </view>
+            <view class="ios-cell__content text-[28rpx] text-[#111827]">
+              {{ info?.wechat || '未设置' }}
+            </view>
+          </view>
+          <view class="ios-divider" style="margin-left: 28rpx;" />
+          <view class="ios-cell">
+            <view class="ios-cell__label" style="width: 160rpx;">
+              GPA
+            </view>
+            <view class="ios-cell__content text-[28rpx] text-[#111827]">
+              {{ info?.gpa || '未设置' }}
+            </view>
+          </view>
+          <view class="ios-divider" style="margin-left: 28rpx;" />
+          <view class="ios-cell">
+            <view class="ios-cell__label" style="width: 160rpx;">
+              方向
+            </view>
+            <view class="ios-cell__content text-[28rpx] text-[#111827]">
+              {{ info?.direction || '未设置' }}
+            </view>
+          </view>
+          <view class="ios-divider" style="margin-left: 28rpx;" />
+          <view class="ios-cell">
+            <view class="ios-cell__label" style="width: 160rpx;">
+              简历
+            </view>
+            <view class="ios-cell__content text-[28rpx] text-[#111827]">
+              {{ info?.resume || info?.resumeName || '未设置' }}
+            </view>
+          </view>
+        </view>
+      </scroll-view>
+      <view class="flex flex-col gap-3 px-3 pt-4">
+        <button class="ios-btn ios-btn--secondary w-full" @click="handleClose">
           关闭
         </button>
       </view>
     </view>
-  </view>
+  </wd-popup>
 </template>
-
-<style scoped>
-.student-dialog {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: rgba(0, 0, 0, 0.5);
-}
-
-.dialog-content {
-  max-height: 80vh;
-  width: 90%;
-  max-width: 400px;
-  overflow-y: auto;
-  border-radius: 32rpx;
-  background-color: white;
-  padding: 30rpx;
-}
-
-.dialog-header {
-  margin-bottom: 24rpx;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.close-icon {
-  font-size: 40rpx;
-  cursor: pointer;
-}
-
-.info-form {
-  margin-bottom: 24rpx;
-}
-
-.form-item {
-  margin-bottom: 20rpx;
-  display: flex;
-}
-
-.label {
-  width: 33.333%;
-  color: #666;
-}
-
-.value {
-  width: 66.667%;
-}
-
-.dialog-footer {
-  margin-top: 24rpx;
-  display: flex;
-  justify-content: center;
-}
-
-.close-btn {
-  width: 100%;
-  border-radius: 28rpx;
-  padding: 22rpx 24rpx;
-}
-</style>

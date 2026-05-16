@@ -52,7 +52,7 @@ const directionArray = [
 const formData = ref<StudentForm>({
   name: '',
   gender: '',
-  studentId: '',
+  studentId: useUserStore().userInfo.username || '',
   grade: '',
   classNum: '',
   phone: '',
@@ -67,66 +67,70 @@ const showAgreement = ref(false)
 const focusedField = ref<string | null>(null)
 const submitting = ref(false)
 const isUploading = ref(false)
+function doUploadFile(tempFilePath: string, fileName: string) {
+  const studentId = useUserStore().userInfo.username
+  if (!studentId || !fileName || !tempFilePath) {
+    uni.showToast({ title: '文件信息获取失败', icon: 'none' })
+    isUploading.value = false
+    return
+  }
+
+  uni.uploadFile({
+    url: `${getEnvBaseUrl()}/api/student/uploadResume`,
+    filePath: tempFilePath,
+    name: 'file',
+    formData: { fileName, studentId, filePath: tempFilePath },
+    success(uploadRes) {
+      if (uploadRes.statusCode === 200) {
+        uni.showToast({ title: '上传成功', icon: 'success' })
+        formData.value.resumeName = fileName
+      }
+      else {
+        uni.showToast({ title: '上传失败', icon: 'none' })
+      }
+      isUploading.value = false
+    },
+    fail() {
+      uni.showToast({ title: '上传失败', icon: 'none' })
+      isUploading.value = false
+    },
+  })
+}
+
 function uploadResume() {
   if (isUploading.value) return
   isUploading.value = true
-  // 上传简历逻辑
-  uni.chooseImage({
+
+  // #ifdef MP-WEIXIN
+  // 微信小程序使用 chooseMessageFile 支持选择 PDF 等文件
+  wx.chooseMessageFile({
     count: 1,
     type: 'file',
-    extension: ['pdf'],
-    success(res) {
-      const tempFilePath = res.tempFilePaths[0]
-      const studentId = useUserStore().userInfo.username
-      const fileName = res.tempFiles[0].name
-      // 字段验证
-      if (!studentId) {
-        uni.showToast({ title: '学生ID获取失败', icon: 'error' })
-        console.error('学生ID为空')
-        isUploading.value = false
-        return
-      }
-      if (!fileName) {
-        uni.showToast({ title: '文件名获取失败', icon: 'error' })
-        console.error('文件名为空')
-        isUploading.value = false
-        return
-      }
-      if (!tempFilePath) {
-        uni.showToast({ title: '文件路径获取失败', icon: 'error' })
-        console.error('文件路径为空')
-        isUploading.value = false
-        return
-      }
-
-      uni.uploadFile({
-        url: `${getEnvBaseUrl()}/api/student/uploadResume`,
-        filePath: tempFilePath,
-        name: 'file',
-        formData: {
-          fileName,
-          studentId,
-          filePath: tempFilePath,
-        },
-        success(uploadRes) {
-          if (uploadRes.statusCode === 200) {
-            uni.showToast({
-              title: '上传成功',
-              icon: 'success',
-            })
-            formData.value.resumeName = fileName
-          }
-          isUploading.value = false
-        },
-        fail() {
-          isUploading.value = false
-        },
-      })
+    extension: ['pdf', 'PDF'],
+    success(res: any) {
+      const file = res.tempFiles[0]
+      doUploadFile(file.path, file.name)
     },
     fail() {
       isUploading.value = false
     },
   })
+  // #endif
+
+  // #ifndef MP-WEIXIN
+  // 非微信平台使用 chooseImage（选图片方式）
+  uni.chooseImage({
+    count: 1,
+    success(res) {
+      const tempFilePath = res.tempFilePaths[0]
+      const fileName = (res.tempFiles[0] as any).name || 'resume.pdf'
+      doUploadFile(tempFilePath, fileName)
+    },
+    fail() {
+      isUploading.value = false
+    },
+  })
+  // #endif
 }
 
 function submitForm() {
@@ -217,7 +221,7 @@ function bindGenderChange(e: any) {
 }
 
 
-function bindDirectionChange(e) {
+function bindDirectionChange(e: any) {
   formData.value.direction = directionArray[e.detail.value]
 }
 
@@ -315,10 +319,7 @@ async function handleAgree() {
           </view>
         </view>
         <view class="ios-divider" style="margin-left: 28rpx" />
-        <view
-          class="ios-cell"
-          :class="{ 'ios-cell--focused': focusedField === 'studentId' }"
-        >
+        <view class="ios-cell">
           <view class="ios-cell__label">
             学号
           </view>
@@ -327,10 +328,10 @@ async function handleAgree() {
               v-model="formData.studentId"
               class="ios-input"
               type="number"
-              placeholder="请输入学号"
+              placeholder="学号"
+              disabled
+              style="color: #9CA3AF;"
               :cursor-spacing="20"
-              @focus="focusedField = 'studentId'"
-              @blur="focusedField = null"
             >
           </view>
         </view>

@@ -62,7 +62,7 @@ function viewDetail(item: any) {
 }
 function handleTabChange(e: any) {
   if (e !== 'myStudent') {
-    uni.redirectTo({
+    uni.navigateTo({
       url: `/pages/${e}/index`,
     })
   }
@@ -76,7 +76,8 @@ async function loadData() {
     activityId: userStore.userInfo.activityId,
   })
   // 按 order 排序：1111, 2222, 3333
-  studentList.value = res.sort(
+  const resData = res.data || res
+  studentList.value = resData.sort(
     (a: any, b: any) => (a.order || 999) - (b.order || 999),
   )
 }
