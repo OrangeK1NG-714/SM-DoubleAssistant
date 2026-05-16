@@ -28,6 +28,7 @@ const userInfoState: IUserInfoVo = {
   token: '',
   activityId: '',
   maxSelectNum: 0,
+  name: '',
 }
 
 const tokensState: ITokens = {
@@ -50,11 +51,13 @@ export const useUserStore = defineStore(
      * @param role - 用户角色
      * @param token - 认证token（已废弃，保留兼容）
      */
-    const setUserInfo = (username: string, role: string, token?: string) => {
+    const setUserInfo = (username: string, role: string, token?: string, name?: string) => {
       userInfo.value = {
+        ...userInfo.value,
         username,
         role,
-        token: token || '',
+        token: token || userInfo.value.token || '',
+        name: name || userInfo.value.name || '',
       }
     }
 

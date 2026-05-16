@@ -7,6 +7,7 @@ export interface IUserInfoVo {
   token: string
   activityId?: string
   maxSelectNum?: number
+  name?: string
 }
 
 /**

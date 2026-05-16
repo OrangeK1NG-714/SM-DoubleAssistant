@@ -51,10 +51,12 @@ const httpInterceptor = {
       platform, // 可选，与 uniapp 定义的平台一致，告诉后台来源
       ...options.header,
     }
-    // 3. 添加 token 请求头标识
-    const accessToken = uni.getStorageSync('accessToken')
-    if (accessToken) {
-      options.header.Authorization = `Bearer ${accessToken}`
+    // 3. 添加 token 请求头标识（如果 http.ts 已设置则不覆盖）
+    if (!options.header.Authorization) {
+      const accessToken = uni.getStorageSync('accessToken')
+      if (accessToken) {
+        options.header.Authorization = `Bearer ${accessToken}`
+      }
     }
   },
 }

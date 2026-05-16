@@ -36,6 +36,24 @@ export function getTeacherListInActivity(activityId: string) {
     activityId,
   }, undefined, { requireAuth: true })
 }
+
+interface ITeacherForActivity {
+  teacherId: string
+  name: string
+  msg: string
+  teacherType: string
+  maxSelectNum: number
+  chooseCount: number
+  selectedCount: number
+}
+/**
+ * 查询某活动中老师完整信息（详情+选择计数，聚合接口）
+ */
+export function getTeachersForActivity(activityId: string) {
+  return http.get<ITeacherForActivity[]>(`${localhost}/api/student/getTeachersForActivity`, {
+    activityId,
+  }, undefined, { requireAuth: true })
+}
 /**
  * 查询某学生是否在活动中
  */
@@ -63,6 +81,7 @@ interface IWriteStdInfo {
   wechat?: string
   gpa: string
   direction: string
+  resumeName?: string
 }
 /**
  * 写入学生信息

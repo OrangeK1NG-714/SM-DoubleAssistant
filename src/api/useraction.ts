@@ -37,6 +37,13 @@ export function getActivityList() {
 }
 
 /**
+ * 获取当前用户参与的所有活动（由JWT自动识别用户）
+ */
+export function getMyActivities() {
+  return http.get<IActivityList[]>(`${localhost}/api/user/getMyActivities`, undefined, undefined, { requireAuth: true })
+}
+
+/**
  * 查询已选学生(通过老师id)
  */
 export function getChooseCount(teacherId: string, activityId: string) {
