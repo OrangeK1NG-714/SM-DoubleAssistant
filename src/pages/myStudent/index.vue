@@ -9,6 +9,7 @@
 
 <script lang="ts" setup>
 import { getSelectState } from '@/api/teaInfo'
+import { getActivityDetail } from '@/api/useraction'
 import { useSafeArea } from '@/composables/useSafeArea'
 import { useUserStore } from '@/store/user'
 
@@ -19,6 +20,7 @@ const scrollHeight = computed(() => {
 })
 const tabbar = ref('myStudent')
 const userStore = useUserStore()
+const activityName = ref('')
 const studentList = ref<Array<any>>([])
 const currentStudent = ref<any>(null)
 const dialogVisible = ref(false)
@@ -71,15 +73,20 @@ function handleCloseDialog() {
   dialogVisible.value = false
 }
 async function loadData() {
-  const res: any = await getSelectState({
-    teacherId: userStore.userInfo.username,
-    activityId: userStore.userInfo.activityId,
-  })
-  // 按 order 排序：1111, 2222, 3333
+  const activityId = userStore.userInfo.activityId!
+  const [res, activityRes]: any[] = await Promise.all([
+    getSelectState({
+      teacherId: userStore.userInfo.username,
+      activityId,
+    }),
+    getActivityDetail(activityId),
+  ])
   const resData = res.data || res
   studentList.value = resData.sort(
     (a: any, b: any) => (a.order || 999) - (b.order || 999),
   )
+  const activity = activityRes.data || activityRes
+  activityName.value = activity?.name || ''
 }
 
 onLoad(async () => {
@@ -105,8 +112,13 @@ onPullDownRefresh(async () => {
 <template>
   <view class="ios-page" :style="{ paddingTop: safeAreaInsets.top + 'px' }">
     <view class="px-5 pt-6">
-      <view class="ios-title">
-        我的学生
+      <view class="flex items-baseline gap-2">
+        <view class="ios-title">
+          我的学生
+        </view>
+        <view v-if="activityName" class="text-[24rpx] text-[#6B7280] font-500">
+          {{ activityName }}
+        </view>
       </view>
       <view class="ios-subtitle mt-2">
         查看当前活动中已确定的学生列表。

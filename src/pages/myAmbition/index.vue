@@ -19,34 +19,35 @@ const safeAreaInsets = useSafeArea()
 
 const userStore = useUserStore()
 
-// 志愿列表
-const list = ref<any[]>([])
 const sortedList = ref<any[]>([])
 const mentor = ref<string>('')
-const isProgressPage = ref(false)
+const tabbar = ref('myAmbition')
 
-// 导航到选择页面
-function navigateToProgress() {
-  uni.navigateTo({ url: '/pages/s_choose/index' })
-}
+const navItems = [
+  { name: 'index', label: '首页' },
+  { name: 'myAmbition', label: '我的志愿' },
+  { name: 's_choose', label: '选择页面' },
+]
 
-// 导航到我的志愿
-function navigateToMyChoices() {
-  uni.showToast({
-    title: '在此页面中',
-    icon: 'none',
-    duration: 1000,
-  })
-}
-
-function navigateHome() {
-  uni.redirectTo({
-    url: '/pages/index/index',
-  })
+function handleTabChange(name: string) {
+  if (name === 'index') {
+    uni.redirectTo({ url: '/pages/index/index' })
+  }
+  else if (name === 's_choose') {
+    uni.navigateTo({ url: '/pages/s_choose/index' })
+  }
+  else if (name === 'myAmbition') {
+    uni.showToast({ title: '在此页面中', icon: 'none', duration: 1000 })
+  }
 }
 
 async function loadData() {
-  const resRaw: any = await getChooseCountWithActivityId(userStore.userInfo.activityId, userStore.userInfo.username)
+  const [resRaw, teacherList, finalChoice]: any = await Promise.all([
+    getChooseCountWithActivityId(userStore.userInfo.activityId!, userStore.userInfo.username),
+    getTeacherList(),
+    getStudentFinalChoice(userStore.userInfo.username, userStore.userInfo.activityId!),
+  ])
+
   const res = resRaw.data || resRaw
   if (res.length === 0) {
     uni.showToast({
@@ -56,14 +57,12 @@ async function loadData() {
     })
   }
   res.sort((a: any, b: any) => a.order - b.order)
-  const teacherList: any = await getTeacherList()
 
   const teacherNameMap: Record<number, string> = {}
   teacherList.data.forEach((item) => {
     teacherNameMap[item.teacherId] = item.name
   })
 
-  const finalChoice: any = await getStudentFinalChoice(userStore.userInfo.username, userStore.userInfo.activityId)
   sortedList.value = res.map(item => ({
     ...item,
     mentor_name: teacherNameMap[item.teacherId],
@@ -88,7 +87,6 @@ onLoad(async () => {
 })
 
 onPullDownRefresh(async () => {
-  list.value = []
   sortedList.value = []
   mentor.value = ''
   await loadData()
@@ -99,19 +97,11 @@ onPullDownRefresh(async () => {
 <template>
   <view class="ios-page pb-30" :style="{ paddingTop: safeAreaInsets.top + 'px' }">
     <view class="px-5 pt-6">
-      <view class="ios-header-row">
-        <view class="ios-header-main">
-          <view class="ios-title">
-            我的志愿
-          </view>
-          <view class="ios-subtitle mt-2">
-            查看已提交的志愿顺序与最终导师结果。
-          </view>
-        </view>
-
-        <button class="ios-home-btn" @tap="navigateHome">
-          首页
-        </button>
+      <view class="ios-title">
+        我的志愿
+      </view>
+      <view class="ios-subtitle mt-2">
+        查看已提交的志愿顺序与最终导师结果。
       </view>
     </view>
 
@@ -149,53 +139,14 @@ onPullDownRefresh(async () => {
     <!-- 底部固定导航栏 -->
     <view class="ios-bottom-nav fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white px-3 py-4" :style="{ paddingBottom: (safeAreaInsets.bottom + 16) + 'px' }">
       <button
-        class="ios-btn ios-bottom-nav-btn mx-1"
-        :class="isProgressPage ? 'ios-btn--secondary' : 'ios-btn--primary'"
-        @tap="navigateToMyChoices"
+        v-for="item in navItems"
+        :key="item.name"
+        class="ios-btn ios-bottom-nav-btn"
+        :class="tabbar === item.name ? 'ios-btn--primary' : 'ios-btn--secondary'"
+        @click="() => { tabbar = item.name; handleTabChange(item.name) }"
       >
-        我的志愿
-      </button>
-      <button
-        class="ios-btn ios-bottom-nav-btn mx-1"
-        :class="isProgressPage ? 'ios-btn--primary' : 'ios-btn--secondary'"
-        @tap="navigateToProgress"
-      >
-        选择页面
+        {{ item.label }}
       </button>
     </view>
   </view>
 </template>
-
-<style scoped>
-.ios-header-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16rpx;
-}
-
-.ios-header-main {
-  flex: 1;
-  min-width: 0;
-}
-
-.ios-home-btn {
-  margin: 0;
-  min-width: 112rpx;
-  border-radius: 999rpx;
-  padding: 12rpx 22rpx;
-  font-size: 24rpx;
-  font-weight: 600;
-  line-height: 1;
-  background: rgba(17, 24, 39, 0.06);
-  color: #111827;
-  border: 1rpx solid rgba(17, 24, 39, 0.08);
-  box-shadow: 0 6rpx 16rpx rgba(0, 0, 0, 0.06);
-}
-
-.ios-home-btn:active {
-  transform: scale(0.98);
-  opacity: 0.9;
-}
-
-</style>

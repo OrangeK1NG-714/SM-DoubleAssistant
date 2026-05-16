@@ -8,7 +8,8 @@
 </route>
 
 <script lang="ts" setup>
-import { writeStdInfo } from '@/api/stdInfo'
+import { onLoad } from '@dcloudio/uni-app'
+import { writeStdInfo, getStudentMsg } from '@/api/stdInfo'
 import { useSafeArea } from '@/composables/useSafeArea'
 import { useUserStore } from '@/store/user'
 import { getEnvBaseUrl } from '@/utils'
@@ -63,10 +64,49 @@ const formData = ref<StudentForm>({
   resumeName: '',
 })
 
+const isEditMode = ref(false)
 const showAgreement = ref(false)
 const focusedField = ref<string | null>(null)
 const submitting = ref(false)
 const isUploading = ref(false)
+
+onLoad((options) => {
+  if (options?.mode === 'edit') {
+    isEditMode.value = true
+    uni.setNavigationBarTitle({ title: '修改个人信息' })
+    loadExistingData()
+  }
+})
+
+async function loadExistingData() {
+  try {
+    uni.showLoading({ title: '加载中...' })
+    const studentId = useUserStore().userInfo.username
+    const res = await getStudentMsg(studentId)
+    const d = res.data?.data
+    if (d) {
+      formData.value = {
+        name: d.name || '',
+        gender: d.gender || '',
+        studentId: d.studentId || studentId,
+        grade: d.grade || '',
+        classNum: d.classNum || '',
+        phone: d.phone || '',
+        qq: d.qq || '',
+        wechat: d.wechat || '',
+        gpa: d.gpa || '',
+        direction: d.direction || '',
+        resumeName: formData.value.resumeName,
+      }
+    }
+  }
+  catch {
+    uni.showToast({ title: '加载信息失败', icon: 'none' })
+  }
+  finally {
+    uni.hideLoading()
+  }
+}
 function doUploadFile(tempFilePath: string, fileName: string) {
   const studentId = useUserStore().userInfo.username
   if (!studentId || !fileName || !tempFilePath) {
@@ -246,10 +286,15 @@ async function handleAgree() {
   try {
     await writeStdInfo(formData.value)
     uni.showToast({
-      title: '提交成功',
+      title: isEditMode.value ? '修改成功' : '提交成功',
       icon: 'success',
     })
-    uni.redirectTo({ url: '/pages/index/index' })
+    if (isEditMode.value) {
+      setTimeout(() => uni.navigateBack(), 500)
+    }
+    else {
+      uni.redirectTo({ url: '/pages/index/index' })
+    }
   }
   catch {
     uni.showToast({ title: '提交失败，请重试', icon: 'none' })
@@ -268,10 +313,10 @@ async function handleAgree() {
   >
     <view class="px-5 pt-6">
       <view class="ios-title">
-        学生基本信息
+        {{ isEditMode ? '修改个人信息' : '学生基本信息' }}
       </view>
       <view class="ios-subtitle mt-2">
-        请如实填写，信息将用于互选流程。
+        {{ isEditMode ? '修改后请点击保存。' : '请如实填写，信息将用于互选流程。' }}
       </view>
     </view>
 
@@ -505,7 +550,7 @@ async function handleAgree() {
 
       <view class="mt-10">
         <button class="ios-btn ios-btn--primary w-full" @tap="submitForm">
-          提交信息
+          {{ isEditMode ? '保存修改' : '提交信息' }}
         </button>
       </view>
     </view>

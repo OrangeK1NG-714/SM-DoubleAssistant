@@ -1,4 +1,3 @@
-<!-- 路由配置保持不变 -->
 <route lang="json5">
 {
 layout: 'default',
@@ -10,7 +9,6 @@ layout: 'default',
 </route>
 
 <script lang="ts" setup>
-// 脚本部分保持不变
 import { ref } from 'vue'
 import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app'
 import { isStudentInActivity } from '@/api/stdInfo'
@@ -32,8 +30,6 @@ const name = ref()
 const activeTab = ref('ongoing')
 const ongoingList = ref<Array<any>>([])
 const endedList = ref<Array<any>>([])
-// console.log(ongoingList.value)
-// console.log(endedList.value)
 
 const isEntering = ref(false)
 const selectedActivity = ref<any | null>(null)
@@ -81,6 +77,10 @@ function switchTab(tab: string) {
 
 const showDetailModal = ref(false)
 const detailDescription = ref('')
+function isActivityEnded(item: any) {
+  return item && new Date() > new Date(item.endDate)
+}
+
 function viewDetail(item: any) {
   showDetailModal.value = true
   selectedActivity.value = item
@@ -101,15 +101,9 @@ function myVolunteer(id: string) {
   })
 }
 
-function openMyVolunteer() {
+function editProfile() {
   uni.navigateTo({
-    url: '/pages/myAmbition/index',
-  })
-}
-
-function openMyStudent() {
-  uni.navigateTo({
-    url: '/pages/myStudent/index',
+    url: '/pages/userMsg/index?mode=edit',
   })
 }
 
@@ -248,9 +242,14 @@ onPullDownRefresh(async () => {
           </template>
         </view>
 
-        <button class="ios-logout-btn" @tap="handleLogout">
-          退出
-        </button>
+        <view class="ios-header-btns">
+          <button v-if="role === 'student'" class="ios-logout-btn" @tap="editProfile">
+            修改信息
+          </button>
+          <button class="ios-logout-btn" @tap="handleLogout">
+            退出
+          </button>
+        </view>
       </view>
 
       <!-- Segmented Control -->
@@ -372,7 +371,7 @@ onPullDownRefresh(async () => {
           我的学生
         </button>
         <button
-          v-if="selectedActivity"
+          v-if="selectedActivity && !isActivityEnded(selectedActivity)"
           class="ios-btn ios-btn--primary"
           @tap="enterSystem(selectedActivity.id)"
         >
@@ -396,6 +395,11 @@ onPullDownRefresh(async () => {
 .ios-header-main {
   flex: 1;
   min-width: 0;
+}
+.ios-header-btns {
+  display: flex;
+  gap: 12rpx;
+  flex-shrink: 0;
 }
 .ios-logout-btn {
   margin: 0;

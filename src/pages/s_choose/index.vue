@@ -1,4 +1,3 @@
-<!-- 路由配置保持不变 -->
 <route lang="json5">
 {
   layout: "default",
@@ -19,11 +18,11 @@ import {
   getActivityDetail,
   getChooseCountWithActivityId,
 } from '@/api/useraction'
+import TeacherCard from '@/components/TeacherCard.vue'
+import { useSafeArea } from '@/composables/useSafeArea'
 import { SUBSCRIBE_TEMPLATE_ID } from '@/constants/config'
 import { IOS_BLUE } from '@/constants/theme'
-import { useSafeArea } from '@/composables/useSafeArea'
 import { useUserStore } from '@/store/user'
-import TeacherCard from '@/components/TeacherCard.vue'
 import { getEnvBaseUrl } from '@/utils'
 
 const store = useUserStore()
@@ -35,7 +34,25 @@ const localhost = getEnvBaseUrl()
 const activeTab = ref('major') // 当前激活的选项卡
 const showSubmitCard = ref(false) // 是否显示提交卡片
 const scrollHeight = ref(0) // 滚动区域高度
-const isProgressPage = ref(true) // 是否是进度页面
+const tabbar = ref('s_choose')
+
+const navItems = [
+  { name: 'index', label: '首页' },
+  { name: 'myAmbition', label: '我的志愿' },
+  { name: 's_choose', label: '选择页面' },
+]
+
+function handleTabChange(name: string) {
+  if (name === 'index') {
+    uni.redirectTo({ url: '/pages/index/index' })
+  }
+  else if (name === 'myAmbition') {
+    uni.redirectTo({ url: '/pages/myAmbition/index' })
+  }
+  else if (name === 's_choose') {
+    uni.showToast({ title: '在此页面中', icon: 'none', duration: 1000 })
+  }
+}
 
 // 志愿列表
 const majorList = ref<any[]>([])
@@ -72,14 +89,18 @@ const recommendList = ref<IRecommendTeacherItem[]>([])
 const recommendError = ref('')
 
 const currentList = computed(() => {
-  if (activeTab.value === 'major') return majorList.value
-  if (activeTab.value === 'public') return publicList.value
+  if (activeTab.value === 'major')
+    return majorList.value
+  if (activeTab.value === 'public')
+    return publicList.value
   return peopleList.value
 })
 
 const emptyText = computed(() => {
-  if (activeTab.value === 'major') return '暂无专业导师数据'
-  if (activeTab.value === 'public') return '暂无公共导师数据'
+  if (activeTab.value === 'major')
+    return '暂无专业导师数据'
+  if (activeTab.value === 'public')
+    return '暂无公共导师数据'
   return '暂无校友导师数据'
 })
 
@@ -87,7 +108,7 @@ const emptyText = computed(() => {
 function calculateScrollHeight() {
   const systemInfo = uni.getSystemInfoSync()
   const topArea = safeAreaInsets.top + 260
-  const bottomArea = 48 + 64 + (safeAreaInsets.bottom || 16)
+  const bottomArea = 16 + 64 + (safeAreaInsets.bottom || 16)
   scrollHeight.value = systemInfo.windowHeight - topArea - bottomArea
 }
 
@@ -96,7 +117,12 @@ function switchTab(tab: string) {
   activeTab.value = tab
 }
 
-// 查看导师详情
+function previewResumeImage() {
+  if (imageUrl.value) {
+    uni.previewImage({ urls: [imageUrl.value], current: imageUrl.value })
+  }
+}
+
 async function viewDetail(data: any) {
   currentTeacher.value = data
   showTeacherSheet.value = true
@@ -197,7 +223,7 @@ function toggleSelect(teacherId: string) {
       {
         studentId: store.userInfo.username,
         teacherId: teacher.teacherId,
-        activityId: store.userInfo.activityId,
+        activityId: store.userInfo.activityId!,
         name: teacher.name,
       },
     ]
@@ -217,11 +243,6 @@ function toggleSelect(teacherId: string) {
 // 切换提交卡片显示状态
 function toggleSubmitCard() {
   showSubmitCard.value = !showSubmitCard.value
-}
-
-// 关闭提交卡片
-function closeCard() {
-  showSubmitCard.value = false
 }
 
 // 改变志愿优先级
@@ -247,11 +268,11 @@ async function requestSubmitSubscribeMessage(): Promise<string> {
   let status = 'not_weixin'
   // #ifdef MP-WEIXIN
   try {
-    const result = await uni.requestSubscribeMessage({
+    const result: any = await uni.requestSubscribeMessage({
       tmplIds: [SUBSCRIBE_TEMPLATE_ID],
     })
 
-    status = (result)[SUBSCRIBE_TEMPLATE_ID]
+    status = result[SUBSCRIBE_TEMPLATE_ID]
 
     if (status === 'accept') {
       uni.showToast({ title: '订阅授权成功', icon: 'none' })
@@ -292,7 +313,8 @@ async function confirmSubscribeBeforeSubmit(): Promise<string> {
 }
 
 async function handleSubmit() {
-  if (submitting.value) return
+  if (submitting.value)
+    return
   submitting.value = true
 
   try {
@@ -337,8 +359,8 @@ async function handleSubmit() {
     }
 
     // 4-1.检查是否提交过志愿
-    const isSubmit = await getChooseCountWithActivityId(
-      store.userInfo.activityId,
+    const isSubmit: any = await getChooseCountWithActivityId(
+      store.userInfo.activityId!,
       store.userInfo.username,
     )
     if ((isSubmit.data || isSubmit).length > 0) {
@@ -362,7 +384,7 @@ async function handleSubmit() {
 
     // 4-3. 提交志愿
     const submitData = selectedMentors.value.map((mentor, index) => ({
-      activityId: store.userInfo.activityId,
+      activityId: store.userInfo.activityId!,
       studentId: store.userInfo.username,
       teacherId: mentor.teacherId,
       order: priority.value[index],
@@ -380,7 +402,7 @@ async function handleSubmit() {
     })
     uni.redirectTo({ url: '/pages/myAmbition/index' })
   }
-  catch (error) {
+  catch (error: any) {
     console.error('选择失败:', error)
     uni.showToast({
       title: error?.data?.msg || '提交失败',
@@ -393,22 +415,6 @@ async function handleSubmit() {
   }
 }
 
-// 导航到我的志愿
-function navigateToMyChoices() {
-  isProgressPage.value = true
-  // uni.showToast({ title: '跳转到我的志愿页面', icon: 'none' })
-  uni.redirectTo({ url: '/pages/myAmbition/index' })
-}
-
-// 导航到选择页面
-function navigateToProgress() {
-  isProgressPage.value = true
-  uni.showToast({
-    title: '在此页面中',
-    icon: 'none',
-    duration: 1000,
-  })
-}
 
 // AI 推荐导师
 async function handleAiRecommend() {
@@ -419,7 +425,7 @@ async function handleAiRecommend() {
 
   try {
     const res: any = await getRecommendTeachers(
-      store.userInfo.activityId,
+      store.userInfo.activityId!,
       store.userInfo.username,
     )
 
@@ -441,7 +447,7 @@ async function handleAiRecommend() {
 
 async function loadData() {
   calculateScrollHeight()
-  const activityId = store.userInfo.activityId
+  const activityId = store.userInfo.activityId!
 
   const [teachersRes, activityDetail]: any[] = await Promise.all([
     getTeachersForActivity(activityId),
@@ -460,7 +466,8 @@ async function loadData() {
   peopleList.value = []
 
   teachers.forEach((t: any) => {
-    if (t.maxSelectNum > 0 && t.selectedCount >= t.maxSelectNum) return
+    if (t.maxSelectNum > 0 && t.selectedCount >= t.maxSelectNum)
+      return
 
     const item = {
       ...t,
@@ -486,18 +493,6 @@ async function loadData() {
 onLoad(async () => {
   try {
     uni.showLoading({ title: '加载中...' })
-
-    // #14: 检查是否已提交过志愿，已提交则直接跳转
-    const existingChoices = await getChooseCountWithActivityId(
-      store.userInfo.activityId,
-      store.userInfo.username,
-    )
-    if (existingChoices && ((existingChoices as any).data || existingChoices).length > 0) {
-      uni.hideLoading()
-      uni.redirectTo({ url: '/pages/myAmbition/index' })
-      return
-    }
-
     await loadData()
   }
   catch (error) {
@@ -520,7 +515,7 @@ onPullDownRefresh(async () => {
 </script>
 
 <template>
-  <view class="ios-page s-choose-page" :style="{ paddingTop: safeAreaInsets.top + 'px' }">
+  <view class="ios-page s-choose-page" :style="{ paddingTop: `${safeAreaInsets.top}px` }">
     <view class="px-5 pt-6">
       <view class="ios-title">
         选择导师
@@ -588,7 +583,8 @@ onPullDownRefresh(async () => {
 
     <!-- 已选导师信息栏 -->
     <view
-      class="selected-mentors-bar fixed bottom-16 left-0 right-0 z-50 h-12 flex items-center justify-between border-t border-gray-200 bg-[#F2F2F7] px-5"
+      v-show="!showRecommendPopup && !showTeacherSheet"
+      class="selected-mentors-bar fixed bottom-14 left-0 right-0 z-50 h-16 flex items-center justify-between border-t border-gray-200 bg-[#F2F2F7] px-5"
     >
       <view class="selected-mentors-bar-mentors-info flex items-center">
         <text class="text-[24rpx] text-[#6B7280]">
@@ -617,22 +613,18 @@ onPullDownRefresh(async () => {
 
     <!-- 底部固定导航栏 -->
     <view
+      v-show="!showRecommendPopup && !showTeacherSheet"
       class="ios-bottom-nav fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white px-3 py-4"
-      :style="{ paddingBottom: (safeAreaInsets.bottom + 16) + 'px' }"
+      :style="{ paddingBottom: `${safeAreaInsets.bottom + 16}px` }"
     >
       <button
-        class="ios-btn ios-bottom-nav-btn mx-1"
-        :class="isProgressPage ? 'ios-btn--secondary' : 'ios-btn--primary'"
-        @tap="navigateToMyChoices"
+        v-for="item in navItems"
+        :key="item.name"
+        class="ios-btn ios-bottom-nav-btn"
+        :class="tabbar === item.name ? 'ios-btn--primary' : 'ios-btn--secondary'"
+        @click="() => { tabbar = item.name; handleTabChange(item.name) }"
       >
-        我的志愿
-      </button>
-      <button
-        class="ios-btn ios-bottom-nav-btn mx-1"
-        :class="isProgressPage ? 'ios-btn--primary' : 'ios-btn--secondary'"
-        @tap="navigateToProgress"
-      >
-        选择页面
+        {{ item.label }}
       </button>
     </view>
 
@@ -710,7 +702,7 @@ onPullDownRefresh(async () => {
           mode="widthFix"
           class="w-full"
           style="border-radius: 24rpx"
-          @tap="uni.previewImage({ urls: [imageUrl], current: imageUrl })"
+          @tap="previewResumeImage"
         />
       </view>
       <view class="flex flex-col gap-3 px-3 pt-2">
@@ -842,5 +834,12 @@ onPullDownRefresh(async () => {
 .ios-bottom-nav,
 .submit-card {
   box-sizing: border-box;
+}
+</style>
+
+<style>
+page:has(.s-choose-page) {
+  height: 100%;
+  overflow: hidden;
 }
 </style>
