@@ -1,9 +1,7 @@
 <!-- 使用 type="home" 属性设置首页，其他页面不需要设置，默认为page；推荐使用json5，更强大，且允许注释 -->
 <route lang="json5" type="home">
 {
-  layout: "tabbar",
   style: {
-    // 'custom' 表示开启自定义导航栏，默认 'default'
     navigationStyle: "custom",
     navigationBarTitleText: "登录",
   },
@@ -79,7 +77,15 @@ async function handleLogin() {
 
       // 确保token已存储后再发起请求
       // 获取用户详细信息
-      const resUserInfo = await getUserInfo(resUsername, role)
+      const resUserInfo: any = await getUserInfo(resUsername, role)
+
+      // 存储用户姓名到 store，避免首页重复请求
+      if (role === 'student' && resUserInfo?.data?.data?.name) {
+        useStore.setUserInfo(resUsername, role, undefined, resUserInfo.data.data.name)
+      }
+      else if (role === 'teacher' && resUserInfo?.data?.name) {
+        useStore.setUserInfo(resUsername, role, undefined, resUserInfo.data.name)
+      }
 
       // 仅小程序端：登录成功后获取 openid 并上报后端
       // #ifdef MP-WEIXIN
@@ -99,13 +105,11 @@ async function handleLogin() {
       // #endif
 
       if (role === 'student' && resUserInfo.isEmpty === 0) {
-        // 跳转页面
         uni.reLaunch({
           url: '/pages/userMsg/index',
         })
       }
       else {
-        // 跳转页面
         uni.reLaunch({
           url: '/pages/index/index',
         })

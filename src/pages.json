@@ -18,7 +18,6 @@
     {
       "path": "pages/login/login",
       "type": "home",
-      "layout": "tabbar",
       "style": {
         "navigationStyle": "custom",
         "navigationBarTitleText": "登录"
@@ -29,21 +28,24 @@
       "type": "page",
       "layout": "default",
       "style": {
-        "navigationBarTitleText": "首页"
+        "navigationBarTitleText": "首页",
+        "enablePullDownRefresh": true
       }
     },
     {
       "path": "pages/myAmbition/index",
       "type": "page",
       "style": {
-        "navigationBarTitleText": "志愿查看"
+        "navigationBarTitleText": "志愿查看",
+        "enablePullDownRefresh": true
       }
     },
     {
       "path": "pages/myStudent/index",
       "type": "page",
       "style": {
-        "navigationBarTitleText": "我的学生"
+        "navigationBarTitleText": "我的学生",
+        "enablePullDownRefresh": true
       }
     },
     {
@@ -59,14 +61,16 @@
       "type": "page",
       "layout": "default",
       "style": {
-        "navigationBarTitleText": "选择页面"
+        "navigationBarTitleText": "选择页面",
+        "enablePullDownRefresh": true
       }
     },
     {
       "path": "pages/t_choose/index",
       "type": "page",
       "style": {
-        "navigationBarTitleText": "老师选择页面"
+        "navigationBarTitleText": "老师选择页面",
+        "enablePullDownRefresh": true
       }
     },
     {
