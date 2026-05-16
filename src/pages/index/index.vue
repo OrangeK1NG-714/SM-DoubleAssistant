@@ -15,7 +15,7 @@ import { ref } from 'vue'
 import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app'
 import { isStudentInActivity } from '@/api/stdInfo'
 import { isTeacherInActivity } from '@/api/teaInfo'
-import { getActivityList, getUserDetail } from '@/api/useraction'
+import { getMyActivities, getUserDetail } from '@/api/useraction'
 import { IOS_BLUE } from '@/constants/theme'
 import { useSafeArea } from '@/composables/useSafeArea'
 import { useUserStore } from '@/store/user'
@@ -26,9 +26,6 @@ defineOptions({
 
 const safeAreaInsets = useSafeArea()
 const useStore = useUserStore()
-
-const nowDate = ref(new Date())
-// console.log(nowDate)
 
 const role = ref()
 const name = ref()
@@ -51,7 +48,7 @@ function formatDateRange(start: string, end: string) {
 
 // 分类活动函数
 function classifyActivities(activities: Array<any>) {
-  const now = nowDate.value
+  const now = new Date()
 
   activities.forEach((activity) => {
     const startDate = new Date(activity.startDate)
@@ -175,49 +172,30 @@ async function enterSystem(id: string) {
 async function loadData() {
   try {
     uni.showLoading({ title: '加载中...' })
-    const res: any = await getActivityList()
+    const currentRole = useStore.userInfo?.role
+    const currentUsername = useStore.userInfo?.username
+    role.value = currentRole
 
-    if (useStore.userInfo?.role === 'student') {
-      // 先检查用户是否在每个活动中
-      const promises = res.map(async (item) => {
-        return await isStudentInActivity(item._id, useStore.userInfo?.username)
-      })
-      const asd = await Promise.all(promises)
-
-      // 过滤出用户参与的活动
-      const userActivities = res.filter((item, index) => {
-        return asd[index].code === 200
-      })
-
-      // 再根据时间分类活动
-      classifyActivities(userActivities as any)
-    }
-    else {
-      // 先检查用户是否在每个活动中
-      const promises = res.map(async (item) => {
-        return await isTeacherInActivity(item._id, useStore.userInfo?.username)
-      })
-      const asd = await Promise.all(promises)
-
-      // 过滤出用户参与的活动
-      const userActivities = res.filter((item, index) => {
-        return asd[index].code === 200
-      })
-
-      // 再根据时间分类活动
-      classifyActivities(userActivities as any)
+    if (useStore.userInfo?.name) {
+      name.value = useStore.userInfo.name
     }
 
-    // 从服务器查询用户信息
-    const userDetail: any = await getUserDetail(useStore.userInfo?.username, useStore.userInfo?.role)
-    // 新增赋值逻辑
-    role.value = useStore.userInfo?.role
-    if (role.value === 'student') {
-      name.value = userDetail.data.data.name
+    const fetchPromises: Promise<any>[] = [getMyActivities()]
+    if (!useStore.userInfo?.name) {
+      fetchPromises.push(getUserDetail(currentUsername, currentRole))
     }
-    else if (role.value === 'teacher') {
-      name.value = userDetail.data.name
+    const [res, userDetail] = await Promise.all(fetchPromises)
+
+    if (userDetail) {
+      if (currentRole === 'student') {
+        name.value = userDetail.data?.data?.name
+      }
+      else if (currentRole === 'teacher') {
+        name.value = userDetail.data?.name
+      }
     }
+
+    classifyActivities(res.data || [])
   }
   catch (error) {
     uni.showToast({ title: '数据加载失败', icon: 'none' })
