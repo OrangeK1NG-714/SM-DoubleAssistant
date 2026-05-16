@@ -14,11 +14,9 @@ import type { IRecommendTeacherItem } from '@/api/stdInfo'
 
 import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app'
 // import { ref } from 'vue'
-import { getRecommendTeachers, getTeacherListInActivity, selectTeacher } from '@/api/stdInfo'
-import { getMaxSelectNum, getTeacherList } from '@/api/teaInfo'
+import { getRecommendTeachers, getTeachersForActivity, selectTeacher } from '@/api/stdInfo'
 import {
   getActivityDetail,
-  getChooseCount,
   getChooseCountWithActivityId,
 } from '@/api/useraction'
 import { SUBSCRIBE_TEMPLATE_ID } from '@/constants/config'
@@ -45,15 +43,13 @@ const publicList = ref<any[]>([])
 const peopleList = ref<any[]>([])
 
 const selectedMentors = ref<Array<any>>([]) // 已选导师列表
-const priority = ref([]) // 志愿优先级
+const priority = ref<number[]>([]) // 志愿优先级
 const priorityOptions = ref([
   { label: '第一志愿', value: 1 },
   { label: '第二志愿', value: 2 },
   { label: '第三志愿', value: 3 },
 ])
 
-// 中本判断位
-const isEight = ref<boolean>(false)
 // 志愿是否重复判断
 const duplicates = ref()
 // 当前活动的选择时间
@@ -63,7 +59,6 @@ const currentActivityTime = ref({
 })
 
 const imageUrl = ref('') // 存储图片URL
-const showImage = ref(false) // 控制图片显示状态
 const showTeacherSheet = ref(false)
 const currentTeacher = ref<any | null>(null)
 
@@ -88,11 +83,12 @@ const emptyText = computed(() => {
   return '暂无校友导师数据'
 })
 
-// 计算滚动区域高度
+// 计算滚动区域高度（预留顶部标题区 + 底部信息栏 + 底部导航栏）
 function calculateScrollHeight() {
   const systemInfo = uni.getSystemInfoSync()
-  // 预留底部信息栏+底部导航栏，避免最后一项被遮挡
-  scrollHeight.value = systemInfo.windowHeight - 280
+  const topArea = safeAreaInsets.top + 260
+  const bottomArea = 48 + 64 + (safeAreaInsets.bottom || 16)
+  scrollHeight.value = systemInfo.windowHeight - topArea - bottomArea
 }
 
 // 切换选项卡
@@ -115,9 +111,7 @@ async function viewDetail(data: any) {
     })
 
     if (downloadResult.statusCode === 200) {
-      // 直接使用临时文件路径显示图片
       imageUrl.value = downloadResult.tempFilePath
-      showImage.value = true
     }
     else {
       uni.showToast({ title: '未获取到导师简历', icon: 'none' })
@@ -209,16 +203,14 @@ function toggleSelect(teacherId: string) {
     ]
   }
   else {
-    // 先找到被移除导师在 selectedMentors 中的索引，清除对应志愿顺序
+    // 移除导师并同步清除对应的志愿顺序（保持索引对齐）
     const removeIndex = selectedMentors.value.findIndex(
       item => item.teacherId === teacherId,
     )
     if (removeIndex !== -1) {
+      selectedMentors.value.splice(removeIndex, 1)
       priority.value.splice(removeIndex, 1)
     }
-    selectedMentors.value = selectedMentors.value.filter(
-      item => item.teacherId !== teacherId,
-    )
   }
 }
 
@@ -251,15 +243,15 @@ function changePriority(e: any, index: number) {
 
 // 提交志愿
 // 请求微信小程序订阅消息授权
-async function requestSubmitSubscribeMessage() {
-  // 仅在微信小程序环境请求订阅消息
+async function requestSubmitSubscribeMessage(): Promise<string> {
+  let status = 'not_weixin'
   // #ifdef MP-WEIXIN
   try {
     const result = await uni.requestSubscribeMessage({
       tmplIds: [SUBSCRIBE_TEMPLATE_ID],
     })
 
-    const status = (result)[SUBSCRIBE_TEMPLATE_ID]
+    status = (result)[SUBSCRIBE_TEMPLATE_ID]
 
     if (status === 'accept') {
       uni.showToast({ title: '订阅授权成功', icon: 'none' })
@@ -270,22 +262,18 @@ async function requestSubmitSubscribeMessage() {
     else if (status === 'ban') {
       uni.showToast({ title: '订阅已被微信拦截', icon: 'none' })
     }
-
-    return status
   }
   catch (error: any) {
     console.warn('订阅消息授权请求失败:', error)
     uni.showToast({ title: error?.errMsg || '订阅授权调用失败', icon: 'none' })
-    return 'fail'
+    status = 'fail'
   }
   // #endif
-
-  // 非微信小程序环境直接返回
-  return 'not_weixin'
+  return status
 }
 
-// 提交前询问是否开启结果通知（模拟“取餐提醒”体验）
-async function confirmSubscribeBeforeSubmit() {
+async function confirmSubscribeBeforeSubmit(): Promise<string> {
+  let result = 'not_weixin'
   // #ifdef MP-WEIXIN
   const modalRes = await uni.showModal({
     title: '结果通知',
@@ -298,10 +286,9 @@ async function confirmSubscribeBeforeSubmit() {
     return 'user_cancel'
   }
 
-  return await requestSubmitSubscribeMessage()
+  result = await requestSubmitSubscribeMessage()
   // #endif
-
-  return 'not_weixin'
+  return result
 }
 
 async function handleSubmit() {
@@ -354,7 +341,7 @@ async function handleSubmit() {
       store.userInfo.activityId,
       store.userInfo.username,
     )
-    if (isSubmit.length > 0) {
+    if ((isSubmit.data || isSubmit).length > 0) {
       uni.showToast({
         title: '您已提交过志愿',
         icon: 'none',
@@ -454,120 +441,63 @@ async function handleAiRecommend() {
 
 async function loadData() {
   calculateScrollHeight()
-  const store = useUserStore()
-  // 中本判断
-  if (store.userInfo.username[store.userInfo.username.length - 5] === '8') {
-    isEight.value = true
-  }
+  const activityId = store.userInfo.activityId
 
-  const res: any = await getTeacherList()
-  const teacherList: any = await getTeacherListInActivity(
-    useUserStore().userInfo.activityId,
-  )
-  // 提取teacherList中所有的teacherId
-  const existingTeacherIds = teacherList.map(teacher => teacher.teacherId)
+  const [teachersRes, activityDetail]: any[] = await Promise.all([
+    getTeachersForActivity(activityId),
+    getActivityDetail(activityId),
+  ])
 
-  // 获取所有导师的最大选择学生数
-  await Promise.all(res.data.map(async (item) => {
-    const result: any = await getMaxSelectNum(
-      item.teacherId,
-      useUserStore().userInfo.activityId,
-    )
-    if (result.maxSelectNum) {
-      item.maxSelectedNum = result.maxSelectNum
-    }
-  }))
-  // 过滤res.data，只保留存在于existingTeacherIds中的老师
-  const filteredTeachers = res.data.filter(teacher =>
-    existingTeacherIds.includes(teacher.teacherId),
-  )
+  const activityData = activityDetail.data || activityDetail
+  currentActivityTime.value.stdChooseEndDate = new Date(activityData.stdChooseEndDate)
+  currentActivityTime.value.stdChooseStartDate = new Date(activityData.stdChooseStartDate)
 
-  const requests = filteredTeachers.map(async (teacher) => {
-    try {
-      // const response =
-      const response: any = await getChooseCount(
-        teacher.teacherId,
-        useUserStore().userInfo.activityId,
-      )
-      if (response.length > 0) {
-        let selectedNum = 0
-        for (let i = 0; i < response.length; i++) {
-          if (response[i].isChose) {
-            selectedNum++
-          }
-        }
-        // if (teacher.maxSelectedNum === selectedNum) {
-        //   return
-        // }
-        teacher.selectedNum = selectedNum
-      }
-      return {
-        ...teacher,
-        number: response.length,
-        selected: false,
-      }
-    }
-    catch (error) {
-      console.error(`获取老师 ${teacher.name} 的选择学生数失败:`, error)
-      // 如果请求失败，默认设为 0
-      return {
-        ...teacher,
-        number: 0,
-        selected: false,
-      }
-    }
-  })
-  // 等待所有异步请求完成
-  const processedTeachers = await Promise.all(requests)
+  const teachers = teachersRes.data || teachersRes || []
 
-  // 使用filter方法过滤掉已达到最大选择数的导师数据
-  // 过滤条件：保留那些maxSelectedNum和selectedNum不相等的项
-  const processedTeachersAfterFilter = processedTeachers.filter((item) => {
-    // 如果maxSelectedNum和selectedNum存在且相等，则过滤掉
-    if (
-      item.maxSelectedNum !== undefined
-      && item.selectedNum !== undefined
-      && item.maxSelectedNum === item.selectedNum
-    ) {
-      return false
-    }
-    // 其他情况保留
-    return true
-  })
-  // 后续可以使用filteredTeachers替代processedTeachers进行分类和显示
-  // 根据teacherType分类数据
+  // 过滤已满员的导师，按类型分类
   majorList.value = []
   publicList.value = []
   peopleList.value = []
 
-  processedTeachersAfterFilter.forEach((teacher) => {
-    switch (teacher.teacherType) {
+  teachers.forEach((t: any) => {
+    if (t.maxSelectNum > 0 && t.selectedCount >= t.maxSelectNum) return
+
+    const item = {
+      ...t,
+      maxSelectedNum: t.maxSelectNum,
+      selectedNum: t.selectedCount,
+      number: t.chooseCount,
+      selected: false,
+    }
+    switch (t.teacherType) {
       case '0':
-        majorList.value.push(teacher)
+        majorList.value.push(item)
         break
       case '1':
-        publicList.value.push(teacher)
+        publicList.value.push(item)
         break
       case '2':
-        peopleList.value.push(teacher)
+        peopleList.value.push(item)
         break
-      default:
-        console.warn(`未知的教师类型: ${teacher.teacherType}`, teacher)
     }
   })
-
-  // 查询活动详情
-  const res1: any = await getActivityDetail(useUserStore().userInfo.activityId)
-  // console.log(res1)
-  currentActivityTime.value.stdChooseEndDate = new Date(res1.stdChooseEndDate)
-  currentActivityTime.value.stdChooseStartDate = new Date(
-    res1.stdChooseStartDate,
-  )
 }
 
 onLoad(async () => {
   try {
     uni.showLoading({ title: '加载中...' })
+
+    // #14: 检查是否已提交过志愿，已提交则直接跳转
+    const existingChoices = await getChooseCountWithActivityId(
+      store.userInfo.activityId,
+      store.userInfo.username,
+    )
+    if (existingChoices && ((existingChoices as any).data || existingChoices).length > 0) {
+      uni.hideLoading()
+      uni.redirectTo({ url: '/pages/myAmbition/index' })
+      return
+    }
+
     await loadData()
   }
   catch (error) {
@@ -583,6 +513,7 @@ onPullDownRefresh(async () => {
   publicList.value = []
   peopleList.value = []
   selectedMentors.value = []
+  priority.value = []
   await loadData()
   uni.stopPullDownRefresh()
 })
@@ -637,7 +568,7 @@ onPullDownRefresh(async () => {
 
     <scroll-view
       scroll-y
-      class="s-choose-scroll px-5 pb-32 pt-5"
+      class="s-choose-scroll px-5 pb-4 pt-5"
       :style="{ height: `${scrollHeight}px` }"
     >
       <view
@@ -730,13 +661,13 @@ onPullDownRefresh(async () => {
             mode="selector"
             :range="priorityOptions"
             range-key="label"
-            :value="(priority[index] || 1) - 1"
+            :value="priority[index] ? priority[index] - 1 : -1"
             class="priority-picker mt-2 block border border-gray-200 rounded p-2"
             @change="(e) => changePriority(e, index)"
           >
-            <view class="picker">
+            <view class="picker" :class="priority[index] ? 'text-[#111827]' : 'text-[#9CA3AF]'">
               {{
-                priorityOptions[priority[index] - 1]?.label || "未选择志愿顺序"
+                priority[index] ? priorityOptions[priority[index] - 1]?.label : "请选择志愿顺序"
               }}
             </view>
           </picker>
@@ -757,22 +688,6 @@ onPullDownRefresh(async () => {
       @tap="toggleSubmitCard"
     />
   </view>
-  <!-- 图片显示模态框 -->
-  <view
-    v-if="showImage"
-    class="image-modal fixed inset-0 z-60 flex flex-col items-center justify-center bg-black bg-opacity-80"
-  >
-    <view class="image-container max-h-[80vh] w-full">
-      <image :src="imageUrl" mode="widthFix" class="max-h-[80vh] w-full" />
-    </view>
-    <button
-      class="close-image-btn mt-6 rounded-full bg-white/20 p-3 text-white"
-      @tap="showImage = false"
-    >
-      关闭
-    </button>
-  </view>
-
   <!-- 导师详情 sheet -->
   <wd-popup
     v-model="showTeacherSheet"
@@ -795,6 +710,7 @@ onPullDownRefresh(async () => {
           mode="widthFix"
           class="w-full"
           style="border-radius: 24rpx"
+          @tap="uni.previewImage({ urls: [imageUrl], current: imageUrl })"
         />
       </view>
       <view class="flex flex-col gap-3 px-3 pt-2">
@@ -903,11 +819,13 @@ onPullDownRefresh(async () => {
 .s-choose-page {
   width: 100%;
   overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .s-choose-scroll {
-  width: 100%;
+  width: auto;
   overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .s-choose-scroll :deep(.uni-scroll-view-content) {
@@ -915,9 +833,14 @@ onPullDownRefresh(async () => {
   scrollbar-width: none;
 }
 
-.s-choose-scroll button {
+.s-choose-scroll :deep(button) {
   margin-left: 0;
   margin-right: 0;
 }
 
+.selected-mentors-bar,
+.ios-bottom-nav,
+.submit-card {
+  box-sizing: border-box;
+}
 </style>
