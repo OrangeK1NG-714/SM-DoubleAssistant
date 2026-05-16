@@ -1,14 +1,7 @@
-// import type { IActivityList } from './types/userAction'
 import { getEnvBaseUrl } from '@/utils'
 import { http } from '@/utils/http'
 
 const localhost = getEnvBaseUrl()
-interface ITeacherListInActivity {
-  _id: string
-  activityId: string
-  teacherId: string
-}
-
 interface IStudentListInActivity {
   _id: string
   activityId: string
@@ -26,15 +19,6 @@ interface ISelectTeacher {
   createTime: string
   subscribeTemplateId?: string
   subscribeStatus?: string
-}
-
-/**
- * 查询某个活动中老师列表信息
- */
-export function getTeacherListInActivity(activityId: string) {
-  return http.get<ITeacherListInActivity>(`${localhost}/api/student/getTeacherList`, {
-    activityId,
-  }, undefined, { requireAuth: true })
 }
 
 interface ITeacherForActivity {
@@ -97,6 +81,8 @@ interface StudentData {
   grade: string
   classNum: string
   phone: string
+  qq?: string
+  wechat?: string
   gpa: string
   direction: string
 }

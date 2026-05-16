@@ -1,4 +1,3 @@
-// import type { IActivityList } from './types/userAction'
 import { getEnvBaseUrl } from '@/utils'
 import { http } from '@/utils/http'
 
@@ -25,29 +24,6 @@ interface ISelectStd {
   data?: object
   order?: number
 }
-/**
- *  老师选学生POST
- */
-export function selectStudent(data: ISelectStd) {
-  return http.post(`${localhost}/api/teacher/selectStudent`, data, undefined, undefined, { requireAuth: true })
-}
-/**
- *  老师选学生-即（修改学生选老师选项）
- */
-export function updateChoose(data: ISelectStd) {
-  return http.put(`${localhost}/api/student/updateTeacher`, data, undefined, undefined, { requireAuth: true })
-}
-
-/**
- *  老师取消选学生DELETE
- */
-export function cancelSelect(data: ISelectStd) {
-  return http.delete(`${localhost}/api/teacher/cancelSelect`, data, undefined, { requireAuth: true })
-}
-
-/**
- *  查询老师选学生状况GET
- */
 export function getSelectState(data: ISelectStd) {
   return http.get(`${localhost}/api/teacher/getSelectList`, data, undefined, { requireAuth: true })
 }
@@ -67,11 +43,25 @@ export function isTeacherInActivity(activityId: string, teacherId: string) {
   }, undefined, { requireAuth: true })
 }
 /**
- * 查询老师的最大选择学生数
+ * 聚合查询：老师选择页面一次性获取所有数据（学生列表+最大选择数+活动详情）
  */
-export function getMaxSelectNum(teacherId: string, activityId: string) {
-  return http.get(`${localhost}/api/user/getMaxSelectNum`, {
+export function getChoosePageData(teacherId: string, activityId: string) {
+  return http.get(`${localhost}/api/teacher/getChoosePageData`, {
     teacherId,
     activityId,
   }, undefined, { requireAuth: true })
+}
+
+/**
+ * 老师选学生（Final+Choose一步完成）
+ */
+export function selectStudentAndUpdate(data: ISelectStd) {
+  return http.post(`${localhost}/api/teacher/selectStudentAndUpdate`, data, undefined, undefined, { requireAuth: true })
+}
+
+/**
+ * 老师取消选学生（Final+Choose一步完成）
+ */
+export function cancelSelectAndUpdate(data: ISelectStd) {
+  return http.post(`${localhost}/api/teacher/cancelSelectAndUpdate`, data, undefined, undefined, { requireAuth: true })
 }

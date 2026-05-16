@@ -2,14 +2,6 @@ import type { IUserInfoVo } from '@/api/types/login'
 import { DEFAULT_TOKEN_EXPIRY_MS, TOKEN_EXPIRY_BUFFER_MS } from '@/constants/config'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import {
-  getUserInfo as _getUserInfo,
-  login as _login,
-  logout as _logout,
-  wxLogin as _wxLogin,
-  getWxCode,
-} from '@/api/login'
-import { toast } from '@/utils/toast'
 
 // 双token存储状态
 interface ITokens {
