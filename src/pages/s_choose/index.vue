@@ -693,7 +693,7 @@ onPullDownRefresh(async () => {
           {{ currentTeacher?.name || "导师详情" }}
         </view>
         <view class="mt-2 text-[24rpx] text-[#6B7280]">
-          查看简历后可返回选择。
+          查看简历后可关闭返回选择。
         </view>
       </view>
       <view v-if="imageUrl" class="px-3 pb-4">
@@ -706,16 +706,6 @@ onPullDownRefresh(async () => {
         />
       </view>
       <view class="flex flex-col gap-3 px-3 pt-2">
-        <button
-          v-if="currentTeacher"
-          class="ios-btn"
-          :class="
-            currentTeacher.selected ? 'ios-btn--secondary' : 'ios-btn--primary'
-          "
-          @tap="toggleSelect(currentTeacher.teacherId)"
-        >
-          {{ currentTeacher.selected ? "取消选择" : "选择该导师" }}
-        </button>
         <button
           class="ios-btn ios-btn--secondary"
           @tap="showTeacherSheet = false"
