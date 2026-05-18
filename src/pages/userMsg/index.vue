@@ -119,7 +119,7 @@ function doUploadFile(tempFilePath: string, fileName: string) {
     url: `${getEnvBaseUrl()}/api/student/uploadResume`,
     filePath: tempFilePath,
     name: 'file',
-    formData: { fileName, studentId, filePath: tempFilePath },
+    formData: { fileName, studentId },
     success(uploadRes) {
       if (uploadRes.statusCode === 200) {
         uni.showToast({ title: '上传成功', icon: 'success' })
