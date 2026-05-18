@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import { getEnvBaseUrl } from '@/utils'
+
 interface Props {
   visible: boolean
   info: any
@@ -11,10 +13,54 @@ interface Emits {
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
+const baseUrl = getEnvBaseUrl()
+
 const showPopup = computed({
   get: () => props.visible,
   set: () => emit('close'),
 })
+
+const hasResume = computed(() => !!props.info?.resumeName)
+
+async function viewResume() {
+  const studentId = props.info?.studentId
+  if (!studentId) {
+    uni.showToast({ title: '缺少学生ID', icon: 'none' })
+    return
+  }
+  try {
+    uni.showLoading({ title: '加载简历中...' })
+    const accessToken = uni.getStorageSync('accessToken')
+    const res = await uni.downloadFile({
+      url: `${baseUrl}/api/student/getStudentResume?studentId=${studentId}`,
+      header: { Authorization: `Bearer ${accessToken}` },
+    })
+    uni.hideLoading()
+
+    if (res.statusCode !== 200) {
+      uni.showToast({ title: '获取简历失败', icon: 'none' })
+      return
+    }
+
+    const fileName = (props.info.resumeName || '').toLowerCase()
+    const isImage = /\.(jpg|jpeg|png)$/.test(fileName)
+
+    if (isImage) {
+      uni.previewImage({ urls: [res.tempFilePath], current: res.tempFilePath })
+    }
+    else {
+      uni.openDocument({
+        filePath: res.tempFilePath,
+        showMenu: true,
+        fail: () => uni.showToast({ title: '无法打开此文件类型', icon: 'none' }),
+      })
+    }
+  }
+  catch {
+    uni.hideLoading()
+    uni.showToast({ title: '获取简历失败', icon: 'none' })
+  }
+}
 
 function handleClose() {
   emit('close')
@@ -133,8 +179,11 @@ function handleClose() {
             <view class="ios-cell__label" style="width: 160rpx;">
               简历
             </view>
-            <view class="ios-cell__content text-[28rpx] text-[#111827]">
-              {{ info?.resume || info?.resumeName || '未设置' }}
+            <view class="ios-cell__content text-[28rpx]">
+              <text v-if="!hasResume" class="text-[#111827]">未上传</text>
+              <text v-else class="text-[#007AFF]" style="text-decoration: underline;" @click="viewResume">
+                {{ info?.resumeName || '查看简历' }}
+              </text>
             </view>
           </view>
         </view>
