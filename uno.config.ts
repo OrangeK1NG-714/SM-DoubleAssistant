@@ -2,7 +2,6 @@
 import { presetUni } from '@uni-helper/unocss-preset-uni'
 import {
   defineConfig,
-  presetAttributify,
   presetIcons,
   transformerDirectives,
   transformerVariantGroup,
@@ -11,10 +10,9 @@ import {
 export default defineConfig({
   presets: [
     presetUni({
-      attributify: {
-        // prefix: 'fg-', // 如果加前缀，则需要在代码里面使用 `fg-` 前缀，如：<div fg-border="1px solid #000"></div>
-        prefixedOnly: true,
-      },
+      // 组件库的 custom-style 属性和源码时间戳会被误识别为原子属性，
+      // 并生成微信编译器无法解析的 WXSS 规则。
+      attributify: false,
     }),
     presetIcons({
       scale: 1.2,
@@ -24,8 +22,6 @@ export default defineConfig({
         'vertical-align': 'middle',
       },
     }),
-    // 支持css class属性化
-    presetAttributify(),
   ],
   transformers: [
     // 启用指令功能：主要用于支持 @apply、@screen 和 theme() 等 CSS 指令

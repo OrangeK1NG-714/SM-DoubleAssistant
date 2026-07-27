@@ -28,3 +28,14 @@ if (occurrences === 4) {
 console.log(occurrences === 4
   ? 'Removed the external UniApp shadow preload from app.wxss'
   : 'No external UniApp shadow preload found in app.wxss')
+
+const sanitizedSource = fs.readFileSync(outputPath, 'utf8')
+const invalidAttributifyRule = sanitizedSource.split('}').some((rule) => {
+  const [selector = '', declarations = ''] = rule.split('{', 2)
+  return selector.includes('[')
+    && (selector.includes('_a_') || /\\[0-9a-f]/i.test(selector))
+    && declarations.includes('=')
+})
+if (invalidAttributifyRule) {
+  throw new Error('app.wxss contains an invalid attributify rule rejected by WeChat DevTools')
+}
