@@ -9,11 +9,10 @@
 
 <script lang="ts" setup>
 import { onLoad } from '@dcloudio/uni-app'
-import { writeStdInfo, getStudentMsg } from '@/api/stdInfo'
+import { getStudentMsg, writeStdInfo } from '@/api/stdInfo'
 import { useSafeArea } from '@/composables/useSafeArea'
 import { useUserStore } from '@/store/user'
 import { getEnvBaseUrl } from '@/utils'
-
 
 // 定义表单数据类型
 interface StudentForm {
@@ -140,7 +139,8 @@ function doUploadFile(tempFilePath: string, fileName: string) {
 }
 
 function uploadResume() {
-  if (isUploading.value) return
+  if (isUploading.value)
+    return
   isUploading.value = true
 
   // #ifdef MP-WEIXIN
@@ -176,7 +176,6 @@ function uploadResume() {
 }
 
 function submitForm() {
-
   // 第一层校验：点击提交按钮时必须先通过校验
   if (!validateForm()) {
     return
@@ -186,7 +185,6 @@ function submitForm() {
   // 显示数据使用协议弹窗
   // showDataUsageAgreement.value = true
 }
-
 
 function validateForm(): boolean {
   const requiredFields: (keyof StudentForm)[] = [
@@ -262,13 +260,29 @@ function bindGenderChange(e: any) {
   formData.value.gender = genderArray[e.detail.value]
 }
 
-
 function bindDirectionChange(e: any) {
   formData.value.direction = directionArray[e.detail.value]
 }
 
 function handleDisagree() {
   showAgreement.value = false
+}
+
+function openPrivacyContract() {
+  // #ifdef MP-WEIXIN
+  const privacyApi = wx as unknown as {
+    openPrivacyContract: (options: { fail?: () => void }) => void
+  }
+  privacyApi.openPrivacyContract({
+    fail() {
+      uni.showToast({ title: '请先在微信公众平台配置隐私保护指引', icon: 'none' })
+    },
+  })
+  // #endif
+
+  // #ifndef MP-WEIXIN
+  uni.showToast({ title: '请在微信小程序中查看完整条款', icon: 'none' })
+  // #endif
 }
 
 async function handleAgree() {
@@ -305,13 +319,12 @@ async function handleAgree() {
     submitting.value = false
   }
 }
-
 </script>
 
 <template>
   <view
     class="ios-page"
-    :style="{ paddingTop: safeAreaInsets.top + 'px' }"
+    :style="{ paddingTop: `${safeAreaInsets.top}px` }"
   >
     <view class="px-5 pt-6">
       <view class="ios-title">
@@ -585,7 +598,7 @@ async function handleAgree() {
           </view>
           <view class="mb-3">
             2.
-            您可以在后续页面查看或删除您的信息，在您注销账号后，我们将相应删除您的相关数据。
+            如需查询、更正或删除个人信息，请通过本系统管理方提交申请；具体处理方式和期限以微信隐私保护指引为准。
           </view>
           <view class="mb-3">
             3.
@@ -597,12 +610,13 @@ async function handleAgree() {
           <view class="mb-2">
             你可以查看《用户协议》和《隐私政策》了解更多细节。
           </view>
-          <view
-            class="mb-4 text-[26rpx]"
-            style="color: var(--ios-blue)"
+          <button
+            class="ios-btn ios-btn--secondary mb-4 w-full"
+            style="font-size: 26rpx"
+            @tap="openPrivacyContract"
           >
-            查看完整条款
-          </view>
+            查看微信隐私保护指引
+          </button>
         </view>
       </scroll-view>
       <view class="flex flex-col gap-3 px-3 pt-4">

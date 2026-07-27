@@ -11,7 +11,8 @@ function getMode() {
   return modeFlagIndex !== -1 ? args[modeFlagIndex + 1] : args[0] === 'build' ? 'production' : 'development' // 默认 development
 }
 // 获取环境变量的范例
-const env = loadEnv(getMode(), path.resolve(process.cwd(), 'env'))
+const mode = getMode()
+const env = loadEnv(mode, path.resolve(process.cwd(), 'env'))
 const {
   VITE_APP_TITLE,
   VITE_UNI_APPID,
@@ -119,13 +120,13 @@ export default defineManifestConfig({
   'mp-weixin': {
     appid: VITE_WX_APPID,
     setting: {
-      urlCheck: false,
+      urlCheck: mode === 'production',
       // 是否启用 ES6 转 ES5
       es6: true,
       minified: true,
     },
     usingComponents: true,
-    // __usePrivacyCheck__: true,
+    __usePrivacyCheck__: true,
   },
   'mp-alipay': {
     usingComponents: true,

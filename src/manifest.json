@@ -1,5 +1,5 @@
 {
-  "name": "unibest",
+  "name": "数媒双选助手",
   "appid": "__UNI__D1E5001",
   "description": "",
   "versionName": "1.0.0",
@@ -85,11 +85,12 @@
   "mp-weixin": {
     "appid": "wx2ef7a7980c58d250",
     "setting": {
-      "urlCheck": false,
+      "urlCheck": true,
       "es6": true,
       "minified": true
     },
-    "usingComponents": true
+    "usingComponents": true,
+    "__usePrivacyCheck__": true
   },
   "mp-alipay": {
     "usingComponents": true,

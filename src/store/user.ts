@@ -1,7 +1,7 @@
 import type { IUserInfoVo } from '@/api/types/login'
-import { DEFAULT_TOKEN_EXPIRY_MS, TOKEN_EXPIRY_BUFFER_MS } from '@/constants/config'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { DEFAULT_TOKEN_EXPIRY_MS, TOKEN_EXPIRY_BUFFER_MS } from '@/constants/config'
 
 // 双token存储状态
 interface ITokens {

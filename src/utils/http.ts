@@ -102,7 +102,7 @@ async function doRefreshToken(): Promise<string | null> {
 
   try {
     const res = await uni.request({
-      url: `${localhost}/api/user/refresh`,
+      url: `${localhost}/api/user/refreshToken`,
       method: 'POST',
       data: { refreshToken },
       dataType: 'json',

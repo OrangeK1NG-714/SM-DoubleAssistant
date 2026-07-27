@@ -27,7 +27,7 @@ SM-DoubleAssistant/
 ├── env/                          # 环境变量配置
 │   ├── .env                      # 公共变量（AppID 等）
 │   ├── .env.development          # 开发环境（localhost:7001）
-│   ├── .env.production           # 生产环境（richardq.tech）
+│   ├── .env.production           # 生产环境（www.richardq.tech）
 │   └── .env.test                 # 测试环境
 ├── src/
 │   ├── api/                      # 接口层（按角色拆分）
@@ -166,7 +166,7 @@ SM-DoubleAssistant/
 |------|------|------|
 | POST | `/api/user/login` | 账号密码登录，返回双 Token |
 | GET | `/api/user/detail` | 获取用户详情 |
-| POST | `/api/user/refresh` | 刷新 Access Token |
+| POST | `/api/user/refreshToken` | 刷新 Access Token |
 
 ### 学生端 (`api/stdInfo.ts`)
 
@@ -254,9 +254,10 @@ pnpm type-check  # TypeScript 类型检查
 
 | 变量 | 说明 | 开发环境 | 生产环境 |
 |------|------|---------|---------|
-| `VITE_SERVER_BASEURL` | 后端 API 地址 | `http://localhost:7001` | `https://richardq.tech` |
-| `VITE_UPLOAD_BASEURL` | 文件上传地址 | `http://localhost:7001/upload` | `https://richardq.tech/upload` |
+| `VITE_SERVER_BASEURL` | 后端 API 地址 | `http://localhost:7001` | `https://www.richardq.tech` |
+| `VITE_UPLOAD_BASEURL` | 文件上传地址 | `http://localhost:7001/upload` | `https://www.richardq.tech/upload` |
 | `VITE_WX_APPID` | 微信小程序 AppID | `wx2ef7a7980c58d250` | 同左 |
 | `VITE_APP_PROXY` | H5 代理开关 | `false` | `false` |
 
 微信小程序支持按环境（开发版/体验版/正式版）分别配置后端地址，通过 `VITE_SERVER_BASEURL__WEIXIN_*` 变量控制。
+正式构建会启用微信开发者工具的合法域名校验；发布前还需在微信公众平台为同一 HTTPS 主机配置 request、uploadFile 和 downloadFile 合法域名，并完成隐私保护指引、订阅消息模板和真机验收。

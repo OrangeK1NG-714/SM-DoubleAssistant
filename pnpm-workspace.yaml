@@ -4,3 +4,12 @@ packages:
 
 patchedDependencies:
   '@dcloudio/uni-h5': patches/@dcloudio__uni-h5.patch
+  wot-design-uni@1.9.1: patches/wot-design-uni@1.9.1.patch
+
+allowBuilds:
+  '@uni-helper/unocss-preset-uni': true
+  core-js: true
+  core-js-pure: true
+  es5-ext: true
+  esbuild: true
+  vue-demi: true

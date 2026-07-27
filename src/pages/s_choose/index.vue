@@ -377,7 +377,10 @@ async function handleSubmit() {
       title: '确认提交',
       content: '提交后不可更改，确定提交志愿吗？',
     })
-    if (!confirm) { submitting.value = false; return }
+    if (!confirm) {
+      submitting.value = false
+      return
+    }
 
     // 4-2. 提交前先让用户确认是否开启提醒，再请求订阅授权（微信小程序）
     const subscribeStatus = await confirmSubscribeBeforeSubmit()
@@ -414,7 +417,6 @@ async function handleSubmit() {
     submitting.value = false
   }
 }
-
 
 // AI 推荐导师
 async function handleAiRecommend() {

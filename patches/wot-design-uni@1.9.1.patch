@@ -1,0 +1,66 @@
+diff --git a/components/composables/useUpload.ts b/components/composables/useUpload.ts
+index 283e029e4de7108f8491b53ef0187d8f46a3817b..bc2488c93529bade8a147953c6fe21f2bb1cccbc 100644
+--- a/components/composables/useUpload.ts
++++ b/components/composables/useUpload.ts
+@@ -172,7 +172,7 @@ export function useUpload(): UseUploadReturn {
+         path: item.path || '',
+         name: item.name || '',
+         size: item.size,
+-        type: 'image',
++        type: 'image' as const,
+         thumb: item.path || ''
+       }))
+     }
+@@ -181,7 +181,7 @@ export function useUpload(): UseUploadReturn {
+         path: (res.tempFiles as any).path || '',
+         name: (res.tempFiles as any).name || '',
+         size: (res.tempFiles as any).size,
+-        type: 'image',
++        type: 'image' as const,
+         thumb: (res.tempFiles as any).path || ''
+       }
+     ]
+diff --git a/components/common/util.ts b/components/common/util.ts
+--- a/components/common/util.ts
++++ b/components/common/util.ts
+@@ -397,7 +397,7 @@ export function isBase64Image(url: string) {
+  * @param {object | object[]} styles 外部传入的样式对象或数组
+  * @returns {string} 格式化后的 CSS 样式字符串
+  */
+-export function objToStyle(styles: Record<string, any> | Record<string, any>[]): string {
++export function objToStyle(styles: Record<string, any> | string | Array<Record<string, any> | string>): string {
+   // 如果 styles 是数组类型
+   if (isArray(styles)) {
+     // 使用过滤函数去除空值和 null 值的元素
+diff --git a/components/wd-picker/wd-picker.vue b/components/wd-picker/wd-picker.vue
+index 7c3728e31cae47030ea7a45599a19e4e77247691..6d8041b63663244e0fd3dcfee9e7a171e552d009 100644
+--- a/components/wd-picker/wd-picker.vue
++++ b/components/wd-picker/wd-picker.vue
+@@ -370,7 +370,8 @@ function setShowValue(items: ColumnItem | ColumnItem[]) {
+   if ((isArray(items) && !items.length) || !items) return
+ 
+   const { valueKey, labelKey } = props
+-  showValue.value = (props.displayFormat || defaultDisplayFormat)(items, { valueKey, labelKey })
++  const displayFormat = (props.displayFormat || defaultDisplayFormat) as (items: ColumnItem | ColumnItem[], vl: { valueKey: string; labelKey: string }) => string
++  showValue.value = displayFormat(items, { valueKey, labelKey })
+ }
+ function noop() {}
+ function onPickStart() {
+diff --git a/components/wd-swiper/wd-swiper.vue b/components/wd-swiper/wd-swiper.vue
+index 4869c63cbe163953cd8399e74d0bb80c4b39df86..8d1eaef05fc03049437168fea287e616bc262a7b 100644
+--- a/components/wd-swiper/wd-swiper.vue
++++ b/components/wd-swiper/wd-swiper.vue
+@@ -136,9 +136,10 @@ const swiperIndicator = computed(() => {
+     indicatorPosition: indicatorPosition || 'bottom'
+   }
+   if (isObj(indicator)) {
+-    swiperIndicator.type = indicator.type || 'dots'
+-    swiperIndicator.minShowNum = indicator.minShowNum || 2
+-    swiperIndicator.showControls = indicator.showControls || false
++    const indicatorOptions = indicator as Partial<SwiperNavProps>
++    swiperIndicator.type = indicatorOptions.type || 'dots'
++    swiperIndicator.minShowNum = indicatorOptions.minShowNum || 2
++    swiperIndicator.showControls = indicatorOptions.showControls || false
+   }
+   return swiperIndicator
+ })

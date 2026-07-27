@@ -43,7 +43,7 @@ async function viewResume() {
     }
 
     const fileName = (props.info.resumeName || '').toLowerCase()
-    const isImage = /\.(jpg|jpeg|png)$/.test(fileName)
+    const isImage = /\.(?:jpg|jpeg|png)$/.test(fileName)
 
     if (isImage) {
       uni.previewImage({ urls: [res.tempFilePath], current: res.tempFilePath })
@@ -180,7 +180,9 @@ function handleClose() {
               简历
             </view>
             <view class="ios-cell__content text-[28rpx]">
-              <text v-if="!hasResume" class="text-[#111827]">未上传</text>
+              <text v-if="!hasResume" class="text-[#111827]">
+                未上传
+              </text>
               <text v-else class="text-[#007AFF]" style="text-decoration: underline;" @click="viewResume">
                 {{ info?.resumeName || '查看简历' }}
               </text>

@@ -28,5 +28,5 @@ export interface IRefreshTokenResult {
 }
 
 export function refreshToken(data: IRefreshTokenParams) {
-  return http.post<IRefreshTokenResult>(`${localhost}/api/user/refresh`, data)
+  return http.post<IRefreshTokenResult>(`${localhost}/api/user/refreshToken`, data)
 }

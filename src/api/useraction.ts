@@ -62,4 +62,3 @@ export function getUserDetail(username: string, role: string) {
     role,
   }, undefined, { requireAuth: true })
 }
-

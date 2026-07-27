@@ -137,7 +137,7 @@ async function handleResetPassword() {
 <template>
   <view
     class="ios-page"
-    :style="{ paddingTop: safeAreaInsets.top + 'px' }"
+    :style="{ paddingTop: `${safeAreaInsets.top}px` }"
   >
     <view class="px-5 pt-8">
       <view class="ios-title">
@@ -220,7 +220,6 @@ async function handleResetPassword() {
       </view>
     </view>
   </view>
-
 </template>
 
 <style scoped>

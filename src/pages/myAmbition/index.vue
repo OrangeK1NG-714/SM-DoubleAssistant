@@ -95,7 +95,7 @@ onPullDownRefresh(async () => {
 </script>
 
 <template>
-  <view class="ios-page pb-30" :style="{ paddingTop: safeAreaInsets.top + 'px' }">
+  <view class="ios-page pb-30" :style="{ paddingTop: `${safeAreaInsets.top}px` }">
     <view class="px-5 pt-6">
       <view class="ios-title">
         我的志愿
@@ -137,7 +137,7 @@ onPullDownRefresh(async () => {
     </view>
 
     <!-- 底部固定导航栏 -->
-    <view class="ios-bottom-nav fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white px-3 py-4" :style="{ paddingBottom: (safeAreaInsets.bottom + 16) + 'px' }">
+    <view class="ios-bottom-nav fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white px-3 py-4" :style="{ paddingBottom: `${safeAreaInsets.bottom + 16}px` }">
       <button
         v-for="item in navItems"
         :key="item.name"

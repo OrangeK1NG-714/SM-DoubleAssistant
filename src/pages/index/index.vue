@@ -9,13 +9,13 @@ layout: 'default',
 </route>
 
 <script lang="ts" setup>
-import { ref } from 'vue'
 import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app'
+import { ref } from 'vue'
 import { isStudentInActivity } from '@/api/stdInfo'
 import { isTeacherInActivity } from '@/api/teaInfo'
 import { getMyActivities, getUserDetail } from '@/api/useraction'
-import { IOS_BLUE } from '@/constants/theme'
 import { useSafeArea } from '@/composables/useSafeArea'
+import { IOS_BLUE } from '@/constants/theme'
 import { useUserStore } from '@/store/user'
 
 defineOptions({
@@ -126,7 +126,8 @@ function handleLogout() {
 }
 
 async function enterSystem(id: string) {
-  if (isEntering.value) return
+  if (isEntering.value)
+    return
   isEntering.value = true
   try {
     uni.showToast({ title: '进入中…', icon: 'none' })
@@ -212,7 +213,7 @@ onPullDownRefresh(async () => {
 </script>
 
 <template>
-  <view class="ios-page" :style="{ paddingTop: safeAreaInsets.top + 'px' }">
+  <view class="ios-page" :style="{ paddingTop: `${safeAreaInsets.top}px` }">
     <view class="px-5 pt-6">
       <view class="ios-header-row">
         <view class="ios-header-main">

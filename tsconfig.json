@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "composite": true,
+    "target": "ES2018",
     "lib": ["esnext", "dom"],
     "baseUrl": ".",
     "module": "ESNext",
@@ -20,6 +21,7 @@
     ],
     "allowJs": true,
     "noImplicitThis": true,
+    "downlevelIteration": true,
     "outDir": "dist",
     "sourceMap": true,
     "allowSyntheticDefaultImports": true,

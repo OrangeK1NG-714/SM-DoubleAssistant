@@ -42,7 +42,8 @@ async function handleResetPassword() {
     title: '确认修改',
     content: '确定要修改密码吗？',
   })
-  if (!confirm) return
+  if (!confirm)
+    return
 
   try {
     isSubmitting.value = true
@@ -70,7 +71,7 @@ async function handleResetPassword() {
 </script>
 
 <template>
-  <view class="ios-page" :style="{ paddingTop: safeAreaInsets.top + 'px' }">
+  <view class="ios-page" :style="{ paddingTop: `${safeAreaInsets.top}px` }">
     <view class="px-5 pt-6">
       <view class="ios-title">
         重置密码
