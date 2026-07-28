@@ -123,15 +123,6 @@ async function handleLogin() {
     uni.hideLoading()
   }
 }
-
-// 重置密码
-async function handleResetPassword() {
-  if (isSubmitting.value)
-    return
-  uni.navigateTo({
-    url: '/pages/resetPassword/index',
-  })
-}
 </script>
 
 <template>
@@ -209,13 +200,6 @@ async function handleResetPassword() {
           @click="handleLogin"
         >
           {{ isSubmitting ? "登录中…" : "登录" }}
-        </button>
-        <button
-          class="ios-btn ios-btn--secondary"
-          :disabled="isSubmitting"
-          @click="handleResetPassword"
-        >
-          修改密码
         </button>
       </view>
     </view>

@@ -10,15 +10,16 @@
 <script lang="ts" setup>
 import { selfResetPassword } from '@/api/stdInfo'
 import { useSafeArea } from '@/composables/useSafeArea'
+import { useUserStore } from '@/store/user'
 
 defineOptions({
   name: 'ResetPassword',
 })
 
 const safeAreaInsets = useSafeArea()
+const userStore = useUserStore()
 
 // 密码重置相关状态
-const resetUsername = ref('')
 const oldPassword = ref('')
 const newPassword = ref('')
 const confirmPassword = ref('')
@@ -29,7 +30,7 @@ const focusedField = ref<string | null>(null)
 async function handleResetPassword() {
   if (isSubmitting.value)
     return
-  if (!resetUsername.value || !oldPassword.value || !newPassword.value || !confirmPassword.value) {
+  if (!userStore.userInfo.username || !oldPassword.value || !newPassword.value || !confirmPassword.value) {
     uni.showToast({ title: '请填写完整信息', icon: 'none' })
     return
   }
@@ -49,7 +50,6 @@ async function handleResetPassword() {
     isSubmitting.value = true
     uni.showLoading({ title: '提交中…' })
     const res = await selfResetPassword({
-      username: resetUsername.value,
       oldPassword: oldPassword.value,
       newPassword: newPassword.value,
     })
@@ -83,23 +83,6 @@ async function handleResetPassword() {
 
     <view class="px-5 pb-10 pt-6">
       <view class="ios-card">
-        <view class="ios-cell" :class="{ 'ios-cell--focused': focusedField === 'username' }">
-          <view class="ios-cell__label">
-            账号
-          </view>
-          <view class="ios-cell__content">
-            <input
-              v-model="resetUsername"
-              class="ios-input"
-              placeholder="学号 / 工号"
-              :cursor-spacing="20"
-              :disabled="isSubmitting"
-              @focus="focusedField = 'username'"
-              @blur="focusedField = null"
-            >
-          </view>
-        </view>
-        <view class="ios-divider" style="margin-left: 28rpx;" />
         <view class="ios-cell" :class="{ 'ios-cell--focused': focusedField === 'old' }">
           <view class="ios-cell__label">
             原密码

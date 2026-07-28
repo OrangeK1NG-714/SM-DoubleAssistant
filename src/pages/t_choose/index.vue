@@ -186,8 +186,6 @@ async function toggleSelect(item: any) {
         studentId: item.studentId,
         teacherId: item.teacherId,
         activityId: item.activityId,
-        data: item.data,
-        order: item.order,
       })
       item.isChose = true
       item.finalTeacher = userStore.userInfo.username
@@ -199,8 +197,11 @@ async function toggleSelect(item: any) {
     secondChoseStudentList.value = secondList.value.filter(i => i.finalTeacher === i.teacherId)
     thirdChoseStudentList.value = thirdList.value.filter(i => i.finalTeacher === i.teacherId)
   }
-  catch (error) {
-    uni.showToast({ title: '操作失败，请重试', icon: 'none' })
+  catch (error: any) {
+    uni.showToast({
+      title: error?.data?.msg || '操作失败，请重试',
+      icon: 'none',
+    })
   }
   finally {
     isToggling.value = false
