@@ -13,7 +13,7 @@ import type { IRecommendTeacherItem } from '@/api/stdInfo'
 
 import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app'
 // import { ref } from 'vue'
-import { getRecommendTeachers, getTeachersForActivity, selectTeacher } from '@/api/stdInfo'
+import { getRecommendTeachers, getTeachersForActivity, submitTeacherChoices } from '@/api/stdInfo'
 import {
   getActivityDetail,
   getChooseCountWithActivityId,
@@ -130,7 +130,7 @@ async function viewDetail(data: any) {
     const accessToken = uni.getStorageSync('accessToken')
     // 使用uni.downloadFile直接下载图片文件
     const downloadResult = await uni.downloadFile({
-      url: `${localhost}/api/teacher/getTeacherResume?teacherId=${data.teacherId}`,
+      url: `${localhost}/api/teacher/getTeacherResume?teacherId=${encodeURIComponent(data.teacherId)}&activityId=${encodeURIComponent(store.userInfo.activityId!)}`,
       header: {
         Authorization: `Bearer ${accessToken}`,
       },
@@ -386,18 +386,16 @@ async function handleSubmit() {
     const subscribeStatus = await confirmSubscribeBeforeSubmit()
 
     // 4-3. 提交志愿
-    const submitData = selectedMentors.value.map((mentor, index) => ({
-      activityId: store.userInfo.activityId!,
-      studentId: store.userInfo.username,
+    const choices = selectedMentors.value.map((mentor, index) => ({
       teacherId: mentor.teacherId,
       order: priority.value[index],
-      isChose: false,
-      createTime: new Date().toString(),
-      subscribeTemplateId: SUBSCRIBE_TEMPLATE_ID,
-      subscribeStatus,
     }))
-    // 5. 提交数据
-    await Promise.all(submitData.map(data => selectTeacher(data)))
+    await submitTeacherChoices({
+      activityId: store.userInfo.activityId!,
+      studentId: store.userInfo.username,
+      choices,
+      subscribeStatus,
+    })
     uni.showToast({
       title: '提交成功',
       icon: 'success',
@@ -468,13 +466,18 @@ async function loadData() {
   peopleList.value = []
 
   teachers.forEach((t: any) => {
-    if (t.maxSelectNum > 0 && t.selectedCount >= t.maxSelectNum)
+    if (
+      !Number.isInteger(t.maxSelectNum)
+      || t.maxSelectNum < 1
+      || t.finalCount >= t.maxSelectNum
+    ) {
       return
+    }
 
     const item = {
       ...t,
       maxSelectedNum: t.maxSelectNum,
-      selectedNum: t.selectedCount,
+      selectedNum: t.finalCount,
       number: t.chooseCount,
       selected: false,
     }

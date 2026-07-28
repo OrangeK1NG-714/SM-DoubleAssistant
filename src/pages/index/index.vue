@@ -107,6 +107,12 @@ function editProfile() {
   })
 }
 
+function changePassword() {
+  uni.navigateTo({
+    url: '/pages/resetPassword/index',
+  })
+}
+
 function handleLogout() {
   uni.showModal({
     title: '退出登录',
@@ -246,6 +252,9 @@ onPullDownRefresh(async () => {
         <view class="ios-header-btns">
           <button v-if="role === 'student'" class="ios-logout-btn" @tap="editProfile">
             修改信息
+          </button>
+          <button class="ios-logout-btn" @tap="changePassword">
+            修改密码
           </button>
           <button class="ios-logout-btn" @tap="handleLogout">
             退出

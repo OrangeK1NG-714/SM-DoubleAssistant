@@ -21,8 +21,6 @@ interface ISelectStd {
   studentId?: string
   teacherId?: string
   activityId?: string
-  data?: object
-  order?: number
 }
 export function getSelectState(data: ISelectStd) {
   return http.get(`${localhost}/api/teacher/getSelectList`, data, undefined, { requireAuth: true })

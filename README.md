@@ -174,10 +174,10 @@ SM-DoubleAssistant/
 |------|------|------|
 | GET | `/api/student/getTeachersForActivity` | 获取活动中的教师列表（含选择计数） |
 | GET | `/api/student/isInActivity` | 检查学生是否在活动中 |
-| POST | `/api/student/selectTeacher` | 提交导师选择 |
+| POST | `/api/student/submitTeacherChoices` | 一次提交三个导师志愿 |
 | POST | `/api/user/writeMsg` | 保存学生个人信息 |
 | GET | `/api/student/getMsg` | 获取学生个人信息 |
-| POST | `/api/user/selfResetPassword` | 自助重置密码 |
+| POST | `/api/user/selfResetPassword` | 登录后修改本人密码 |
 | POST | `/api/student/saveOpenid` | 上报微信 OpenID |
 | GET | `/api/admin/getFinalChoose` | 查询最终分配结果 |
 | GET | `/api/student/recommendTeachers` | AI 推荐导师 |

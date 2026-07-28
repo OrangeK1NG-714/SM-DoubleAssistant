@@ -10,14 +10,15 @@ interface IStudentListInActivity {
 /**
  * 新增选老师的参数
  */
-interface ISelectTeacher {
-  activityId: string
+interface ITeacherChoice {
   teacherId: string
   order: number
-  isChose: boolean
+}
+
+interface ISubmitTeacherChoices {
+  activityId: string
   studentId: string
-  createTime: string
-  subscribeTemplateId?: string
+  choices: ITeacherChoice[]
   subscribeStatus?: string
 }
 
@@ -27,6 +28,8 @@ interface ITeacherForActivity {
   msg: string
   teacherType: string
   maxSelectNum: number
+  finalCount: number
+  remainingSlots: number
   chooseCount: number
   selectedCount: number
 }
@@ -50,8 +53,8 @@ export function isStudentInActivity(activityId: string, studentId: string) {
 /**
  * 新增学生选老师选项
  */
-export function selectTeacher(data: ISelectTeacher) {
-  return http.post(`${localhost}/api/student/selectTeacher`, data, undefined, undefined, { requireAuth: true })
+export function submitTeacherChoices(data: ISubmitTeacherChoices) {
+  return http.post(`${localhost}/api/student/submitTeacherChoices`, data, undefined, undefined, { requireAuth: true })
 }
 
 interface IWriteStdInfo {
@@ -103,15 +106,14 @@ export function getStudentMsg(studentId: string) {
 }
 
 interface ISelfResetPassword {
-  username: string
   oldPassword: string
   newPassword: string
 }
 /**
- *  用户自助修改密码（无需登录token，需验证旧密码）
+ * 用户修改自己的密码（需要登录 token，并再次验证旧密码）
  */
 export function selfResetPassword(data: ISelfResetPassword) {
-  return http.post(`${localhost}/api/user/selfResetPassword`, data)
+  return http.post(`${localhost}/api/user/selfResetPassword`, data, undefined, undefined, { requireAuth: true })
 }
 
 /**

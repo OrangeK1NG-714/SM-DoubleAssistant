@@ -24,15 +24,16 @@ const hasResume = computed(() => !!props.info?.resumeName)
 
 async function viewResume() {
   const studentId = props.info?.studentId
-  if (!studentId) {
-    uni.showToast({ title: '缺少学生ID', icon: 'none' })
+  const activityId = props.info?.activityId
+  if (!studentId || !activityId) {
+    uni.showToast({ title: '缺少学生或活动信息', icon: 'none' })
     return
   }
   try {
     uni.showLoading({ title: '加载简历中...' })
     const accessToken = uni.getStorageSync('accessToken')
     const res = await uni.downloadFile({
-      url: `${baseUrl}/api/student/getStudentResume?studentId=${studentId}`,
+      url: `${baseUrl}/api/student/getStudentResume?studentId=${encodeURIComponent(studentId)}&activityId=${encodeURIComponent(activityId)}`,
       header: { Authorization: `Bearer ${accessToken}` },
     })
     uni.hideLoading()
