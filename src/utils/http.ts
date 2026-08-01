@@ -1,5 +1,11 @@
 import type { CustomRequestOptions } from '@/interceptors/request'
-import { TOKEN_EXPIRY_BUFFER_MS } from '@/constants/config'
+import {
+  clearAuthTokens,
+  getStoredRefreshToken,
+  getValidAccessToken,
+  persistAuthTokens,
+  shouldRefreshAccessToken,
+} from '@/adapters/auth/uni-auth-session'
 import { getEnvBaseUrl } from '@/utils'
 
 const localhost = getEnvBaseUrl()
@@ -16,36 +22,8 @@ interface IRefreshTokenResult {
   msg: string
 }
 
-// 是否正在刷新token
-let isRefreshing = false
-// 等待token刷新完成的请求队列
-let requestQueue: Array<{
-  resolve: (value: unknown) => void
-  reject: (reason?: any) => void
-  options: CustomRequestOptions
-}> = []
+let refreshPromise: Promise<string | null> | null = null
 
-/**
- * 处理请求队列
- * @param newToken 新的accessToken
- */
-function processQueue(newToken: string) {
-  requestQueue.forEach((request) => {
-    request.options.header = {
-      ...request.options.header,
-      Authorization: `Bearer ${newToken}`,
-    }
-    executeRequest(request.options).then(request.resolve).catch(request.reject)
-  })
-  requestQueue = []
-}
-
-function clearAllToken() {
-  uni.removeStorageSync('accessToken')
-  uni.removeStorageSync('refreshToken')
-  uni.removeStorageSync('accessTokenExpiresAt')
-  uni.removeStorageSync('token')
-}
 /**
  * 执行实际请求
  */
@@ -64,7 +42,7 @@ function executeRequest<T>(options: CustomRequestOptions): Promise<IResData<T>> 
         }
         else if (res.statusCode === 401) {
           // 401错误 -> 清理用户信息，跳转到登录页
-          clearAllToken()
+          clearAuthTokens()
           uni.redirectTo({ url: '/pages/login/login' })
           reject(new Error('登录已过期，请重新登录'))
         }
@@ -94,7 +72,7 @@ function executeRequest<T>(options: CustomRequestOptions): Promise<IResData<T>> 
  * 刷新accessToken
  */
 async function doRefreshToken(): Promise<string | null> {
-  const refreshToken = uni.getStorageSync('refreshToken')
+  const refreshToken = getStoredRefreshToken()
 
   if (!refreshToken) {
     return null
@@ -111,152 +89,65 @@ async function doRefreshToken(): Promise<string | null> {
     if (res.statusCode === 200 && (res.data as IRefreshTokenResult).code === 200) {
       const { accessToken, refreshToken: newRefreshToken, expiresIn } = (res.data as IRefreshTokenResult).data
 
-      // 更新存储的token
-      const expiresAt = Date.now() + expiresIn * 1000
-      uni.setStorageSync('accessToken', accessToken)
-      uni.setStorageSync('refreshToken', newRefreshToken)
-      uni.setStorageSync('accessTokenExpiresAt', expiresAt)
-      uni.setStorageSync('token', accessToken) // 兼容旧版本
+      persistAuthTokens(accessToken, newRefreshToken, expiresIn)
 
       return accessToken
     }
     else {
       // 刷新失败，清除所有token
-      clearAllToken()
+      clearAuthTokens()
       return null
     }
   }
   catch (error) {
-    clearAllToken()
+    clearAuthTokens()
     return null
   }
 }
 
-/**
- * 判断是否为无效 token 字符串
- */
-function isInvalidTokenStr(val: any): boolean {
-  return !val || val === 'null' || val === 'undefined'
+function refreshAccessTokenOnce(): Promise<string | null> {
+  if (!refreshPromise) {
+    refreshPromise = doRefreshToken().finally(() => {
+      refreshPromise = null
+    })
+  }
+  return refreshPromise
 }
 
 /**
- * 获取有效的accessToken
+ * 为普通请求和 uploadFile 提供同一认证/刷新边界，避免页面直接读取 token。
  */
-function getValidAccessToken(): string | null {
-  const accessToken = uni.getStorageSync('accessToken')
-  const expiresAt = uni.getStorageSync('accessTokenExpiresAt')
-
-  if (isInvalidTokenStr(accessToken) || !expiresAt) {
-    return null
-  }
-
-  const now = Date.now()
-  // 预留5分钟缓冲时间
-  if (expiresAt > now + TOKEN_EXPIRY_BUFFER_MS) {
+export async function getAuthorizedAccessToken(): Promise<string> {
+  const accessToken = getValidAccessToken()
+  if (accessToken) {
+    if (shouldRefreshAccessToken()) {
+      void refreshAccessTokenOnce()
+    }
     return accessToken
   }
 
-  return null
-}
-
-/**
- * 检查token是否需要刷新（即将过期）
- */
-function shouldRefreshToken(): boolean {
-  const accessToken = uni.getStorageSync('accessToken')
-  const expiresAt = uni.getStorageSync('accessTokenExpiresAt')
-  const refreshToken = uni.getStorageSync('refreshToken')
-
-  if (isInvalidTokenStr(accessToken) || !expiresAt || isInvalidTokenStr(refreshToken)) {
-    return false
+  if (!getStoredRefreshToken()) {
+    uni.redirectTo({ url: '/pages/login/login' })
+    throw new Error('未登录，请先登录')
   }
 
-  const now = Date.now()
-  // 5分钟内过期，需要刷新
-  return expiresAt > now && expiresAt < now + TOKEN_EXPIRY_BUFFER_MS
+  const refreshedToken = await refreshAccessTokenOnce()
+  if (!refreshedToken) {
+    uni.redirectTo({ url: '/pages/login/login' })
+    throw new Error('登录已过期，请重新登录')
+  }
+  return refreshedToken
 }
 
-export function http<T>(options: CustomRequestOptions) {
-  return new Promise<IResData<T>>((resolve, reject) => {
-    // 1. 检查是否需要认证
-    if (options.requireAuth) {
-      // 2. 获取有效的accessToken
-      const accessToken = getValidAccessToken()
-
-      // 3. 如果没有有效token，检查是否需要刷新
-      if (!accessToken) {
-        const refreshTokenValue = uni.getStorageSync('refreshToken')
-
-        // 没有refreshToken，说明未登录
-        if (isInvalidTokenStr(refreshTokenValue)) {
-          uni.redirectTo({ url: '/pages/login/login' })
-          reject(new Error('未登录，请先登录'))
-          return
-        }
-
-        // 有refreshToken，尝试刷新
-        if (isRefreshing) {
-          // 正在刷新中，加入队列等待
-          requestQueue.push({ resolve, reject, options })
-          return
-        }
-
-        // 开始刷新token
-        isRefreshing = true
-        doRefreshToken()
-          .then((newToken) => {
-            isRefreshing = false
-            if (newToken) {
-              // 刷新成功，处理队列中的请求
-              processQueue(newToken)
-              // 当前请求继续执行
-              options.header = {
-                ...options.header,
-                Authorization: `Bearer ${newToken}`,
-              }
-              executeRequest<T>(options).then(resolve).catch(reject)
-            }
-            else {
-              // 刷新失败，清空队列并跳转登录
-              requestQueue.forEach((request) => {
-                request.reject(new Error('登录已过期，请重新登录'))
-              })
-              requestQueue = []
-              uni.redirectTo({ url: '/pages/login/login' })
-              reject(new Error('登录已过期，请重新登录'))
-            }
-          })
-          .catch((error) => {
-            isRefreshing = false
-            requestQueue.forEach((request) => {
-              request.reject(error)
-            })
-            requestQueue = []
-            uni.redirectTo({ url: '/pages/login/login' })
-            reject(error)
-          })
-        return
-      }
-
-      // 4. 检查是否需要提前刷新token（即将过期）
-      if (shouldRefreshToken() && !isRefreshing) {
-        // 异步刷新token，不影响当前请求
-        isRefreshing = true
-        doRefreshToken().finally(() => {
-          isRefreshing = false
-        })
-      }
-
-      // 5. 添加Authorization请求头
-      options.header = {
-        ...options.header,
-        Authorization: `Bearer ${accessToken}`,
-      }
+export async function http<T>(options: CustomRequestOptions): Promise<IResData<T>> {
+  if (options.requireAuth) {
+    const accessToken = await getAuthorizedAccessToken()
+    options.header = {
+      ...options.header,
+      Authorization: `Bearer ${accessToken}`,
     }
-
-    // 6. 执行请求
-    executeRequest<T>(options).then(resolve).catch(reject)
-  })
+  }
+  return executeRequest<T>(options)
 }
 
 /**

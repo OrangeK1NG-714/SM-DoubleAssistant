@@ -155,8 +155,13 @@ SM-DoubleAssistant/
 
 ### 样式系统
 
-- **UnoCSS**：原子化工具类，使用 `@uni-helper/unocss-preset-uni` 适配小程序
-- **ios.scss**：自定义 iOS 风格设计系统，定义了 `--ios-blue`、`--ios-bg` 等 CSS 变量，统一圆角卡片、分段控件、底部弹窗等视觉风格
+- **Wot Design Uni**：唯一的基础组件库。按钮、输入框、步骤、卡片、标签、Toast 和
+  MessageBox 优先复用公开组件，不在业务页面重复实现基础控件。
+- **统一主题**：`src/constants/theme.ts` 的 `CAMPUS_THEME` 通过
+  `wd-config-provider` 提供低饱和校园蓝、中性色和成功/预警/危险语义色。
+- **UnoCSS**：仅负责排版、间距和业务布局，使用
+  `@uni-helper/unocss-preset-uni` 适配小程序。
+- **ios.scss**：保留尚未迁移页面的兼容样式；新页面不再基于它扩展私有基础组件。
 
 ## API 接口一览
 

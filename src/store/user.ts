@@ -1,17 +1,12 @@
 import type { IUserInfoVo } from '@/api/types/login'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { DEFAULT_TOKEN_EXPIRY_MS, TOKEN_EXPIRY_BUFFER_MS } from '@/constants/config'
-
-// 双token存储状态
-interface ITokens {
-  /** 访问令牌 */
-  accessToken: string
-  /** 刷新令牌 */
-  refreshToken: string
-  /** 访问令牌过期时间戳 */
-  accessTokenExpiresAt: number
-}
+import {
+  clearAuthTokens,
+  persistAuthTokens,
+  getValidAccessToken as readValidAccessToken,
+  shouldRefreshAccessToken,
+} from '@/adapters/auth/uni-auth-session'
 
 // 初始化状态
 const userInfoState: IUserInfoVo = {
@@ -23,32 +18,24 @@ const userInfoState: IUserInfoVo = {
   name: '',
 }
 
-const tokensState: ITokens = {
-  accessToken: '',
-  refreshToken: '',
-  accessTokenExpiresAt: 0,
-}
-
 export const useUserStore = defineStore(
   'user',
   () => {
     // 定义用户信息
     const userInfo = ref<IUserInfoVo>({ ...userInfoState })
-    // 定义双token信息
-    const tokens = ref<ITokens>({ ...tokensState })
 
     /**
-     * 设置用户信息（兼容旧版本单token，逐步迁移）
+     * 设置展示身份。Token 只允许由 auth session adapter 持久化。
      * @param username - 用户名
      * @param role - 用户角色
-     * @param token - 认证token（已废弃，保留兼容）
+     * @param _token - 旧调用签名占位，不再保存
      */
-    const setUserInfo = (username: string, role: string, token?: string, name?: string) => {
+    const setUserInfo = (username: string, role: string, _token?: string, name?: string) => {
       userInfo.value = {
         ...userInfo.value,
         username,
         role,
-        token: token || userInfo.value.token || '',
+        token: '',
         name: name || userInfo.value.name || '',
       }
     }
@@ -60,23 +47,7 @@ export const useUserStore = defineStore(
      * @param expiresIn - 过期时间（秒）
      */
     const setTokens = (accessToken: string, refreshToken: string, expiresIn?: number) => {
-      const expiresAt = expiresIn
-        ? Date.now() + expiresIn * 1000
-        : Date.now() + DEFAULT_TOKEN_EXPIRY_MS
-
-      tokens.value = {
-        accessToken,
-        refreshToken,
-        accessTokenExpiresAt: expiresAt,
-      }
-
-      // 同时存储到本地，方便http拦截器使用
-      uni.setStorageSync('accessToken', accessToken)
-      uni.setStorageSync('refreshToken', refreshToken)
-      uni.setStorageSync('accessTokenExpiresAt', expiresAt)
-
-      // 兼容旧版本
-      uni.setStorageSync('token', accessToken)
+      persistAuthTokens(accessToken, refreshToken, expiresIn)
     }
 
     /**
@@ -84,12 +55,7 @@ export const useUserStore = defineStore(
      * @returns 有效的accessToken，如果过期返回null
      */
     const getValidAccessToken = (): string | null => {
-      const now = Date.now()
-      // 预留5分钟的缓冲时间
-      if (tokens.value.accessToken && tokens.value.accessTokenExpiresAt > now + TOKEN_EXPIRY_BUFFER_MS) {
-        return tokens.value.accessToken
-      }
-      return null
+      return readValidAccessToken()
     }
 
     /**
@@ -97,12 +63,7 @@ export const useUserStore = defineStore(
      * @returns 是否即将过期（5分钟内）
      */
     const isTokenExpiringSoon = (): boolean => {
-      const now = Date.now()
-      return !!(
-        tokens.value.accessToken
-        && tokens.value.accessTokenExpiresAt > now
-        && tokens.value.accessTokenExpiresAt < now + 5 * 60 * 1000
-      )
+      return shouldRefreshAccessToken()
     }
 
     const setActivityId = (activityId: string) => {
@@ -114,16 +75,11 @@ export const useUserStore = defineStore(
      */
     const clearUserInfo = () => {
       userInfo.value = { ...userInfoState }
-      tokens.value = { ...tokensState }
-      uni.removeStorageSync('accessToken')
-      uni.removeStorageSync('refreshToken')
-      uni.removeStorageSync('accessTokenExpiresAt')
-      uni.removeStorageSync('token')
+      clearAuthTokens()
     }
 
     return {
       userInfo,
-      tokens,
       setActivityId,
       setUserInfo,
       setTokens,
@@ -133,6 +89,20 @@ export const useUserStore = defineStore(
     }
   },
   {
-    persist: true,
+    persist: {
+      paths: [
+        'userInfo.username',
+        'userInfo.role',
+        'userInfo.activityId',
+        'userInfo.maxSelectNum',
+        'userInfo.name',
+      ],
+      afterRestore: ({ store }) => {
+        // 第一次升级时清掉旧 Pinia 快照中的 token/tokens，并立即按白名单重写。
+        store.userInfo.token = ''
+        delete (store.$state as Record<string, unknown>).tokens
+        store.$persist()
+      },
+    },
   },
 )

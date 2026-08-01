@@ -12,44 +12,87 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <view
-    class="ios-card mb-4"
-    style="padding: 0"
-  >
-    <view class="ios-cell">
-      <view class="flex-1 text-[28rpx] text-[#111827] font-600">
-        {{ teacher.name }}
+  <wd-card custom-class="teacher-card">
+    <template #title>
+      <view class="teacher-card__header">
+        <view>
+          <view class="teacher-card__name">
+            {{ teacher.name }}
+          </view>
+          <view class="teacher-card__meta">
+            导师信息与当前报名情况
+          </view>
+        </view>
+        <wd-tag
+          round
+          :type="
+            teacher.number >= TEACHER_POPULARITY_HIGH
+              ? 'danger'
+              : teacher.number >= TEACHER_POPULARITY_MEDIUM
+                ? 'warning'
+                : 'primary'
+          "
+        >
+          报名热度 {{ teacher.number }}
+        </wd-tag>
       </view>
-      <view
-        class="text-[24rpx]"
-        :class="
-          teacher.number >= TEACHER_POPULARITY_HIGH
-            ? 'text-[#FF3B30]'
-            : teacher.number >= TEACHER_POPULARITY_MEDIUM
-              ? 'text-[#F59E0B]'
-              : 'text-[#0A84FF]'
-        "
-      >
-        {{ teacher.number }}
-      </view>
-    </view>
-    <view class="ios-divider" style="margin-left: 28rpx" />
-    <view class="flex gap-3 px-4 pb-4 pt-3">
-      <button
-        class="ios-btn ios-btn--secondary flex-1"
-        style="padding: 18rpx 18rpx; font-size: 28rpx"
-        @tap="emit('viewDetail', teacher)"
+    </template>
+
+    <view class="teacher-card__actions">
+      <wd-button
+        type="info"
+        plain
+        size="large"
+        custom-class="teacher-card__button"
+        @click="emit('viewDetail', teacher)"
       >
         详情
-      </button>
-      <button
-        class="ios-btn flex-1"
-        :class="teacher.selected ? 'ios-btn--primary' : 'ios-btn--secondary'"
-        style="padding: 18rpx 18rpx; font-size: 28rpx"
-        @tap="emit('toggleSelect', teacher.teacherId)"
+      </wd-button>
+      <wd-button
+        :type="teacher.selected ? 'success' : 'primary'"
+        size="large"
+        custom-class="teacher-card__button"
+        @click="emit('toggleSelect', teacher.teacherId)"
       >
-        {{ teacher.selected ? "已选 ✓" : "选择" }}
-      </button>
+        {{ teacher.selected ? "已选择" : "选择导师" }}
+      </wd-button>
     </view>
-  </view>
+  </wd-card>
 </template>
+
+<style scoped>
+.teacher-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18rpx;
+}
+
+.teacher-card__name {
+  color: #172033;
+  font-size: 31rpx;
+  font-weight: 700;
+}
+
+.teacher-card__meta {
+  margin-top: 7rpx;
+  color: #98a2b3;
+  font-size: 22rpx;
+}
+
+.teacher-card__actions {
+  display: flex;
+  gap: 18rpx;
+}
+
+:deep(.teacher-card) {
+  margin: 0 0 24rpx;
+  border: 1rpx solid #eaecf0;
+  box-shadow: 0 12rpx 30rpx rgba(16, 24, 40, 0.05);
+}
+
+:deep(.teacher-card__button) {
+  min-width: 0;
+  flex: 1;
+}
+</style>

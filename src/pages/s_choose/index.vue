@@ -10,9 +10,9 @@
 
 <script lang="ts" setup>
 import type { IRecommendTeacherItem } from '@/api/stdInfo'
-
 import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app'
 // import { ref } from 'vue'
+import { getStoredAccessToken } from '@/adapters/auth/uni-auth-session'
 import { getRecommendTeachers, getTeachersForActivity, submitTeacherChoices } from '@/api/stdInfo'
 import {
   getActivityDetail,
@@ -127,7 +127,7 @@ async function viewDetail(data: any) {
   currentTeacher.value = data
   showTeacherSheet.value = true
   try {
-    const accessToken = uni.getStorageSync('accessToken')
+    const accessToken = getStoredAccessToken()
     // 使用uni.downloadFile直接下载图片文件
     const downloadResult = await uni.downloadFile({
       url: `${localhost}/api/teacher/getTeacherResume?teacherId=${encodeURIComponent(data.teacherId)}&activityId=${encodeURIComponent(store.userInfo.activityId!)}`,

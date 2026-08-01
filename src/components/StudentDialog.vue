@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import { getStoredAccessToken } from '@/adapters/auth/uni-auth-session'
 import { getEnvBaseUrl } from '@/utils'
 
 interface Props {
@@ -31,7 +32,7 @@ async function viewResume() {
   }
   try {
     uni.showLoading({ title: '加载简历中...' })
-    const accessToken = uni.getStorageSync('accessToken')
+    const accessToken = getStoredAccessToken()
     const res = await uni.downloadFile({
       url: `${baseUrl}/api/student/getStudentResume?studentId=${encodeURIComponent(studentId)}&activityId=${encodeURIComponent(activityId)}`,
       header: { Authorization: `Bearer ${accessToken}` },

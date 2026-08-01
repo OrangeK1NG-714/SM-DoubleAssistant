@@ -19,6 +19,7 @@
     {
       "path": "pages/login/login",
       "type": "home",
+      "layout": "default",
       "style": {
         "navigationStyle": "custom",
         "navigationBarTitleText": "登录"

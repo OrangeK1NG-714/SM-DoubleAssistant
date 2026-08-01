@@ -1,12 +1,11 @@
 import { onLoad } from '@dcloudio/uni-app'
-import { useUserStore } from '@/store'
+import { hasAuthenticatedSession } from '@/adapters/auth/uni-auth-session'
 import { needLoginPages as _needLoginPages, getNeedLoginPages } from '@/utils'
 
 const loginRoute = import.meta.env.VITE_LOGIN_URL
 const isDev = import.meta.env.DEV
 function isLogined() {
-  const userStore = useUserStore()
-  return !!userStore.userInfo.username
+  return hasAuthenticatedSession()
 }
 // 检查当前页面是否需要登录
 export function usePageAuth() {
