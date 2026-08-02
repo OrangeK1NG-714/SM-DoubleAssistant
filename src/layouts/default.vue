@@ -1,15 +1,9 @@
 <script lang="ts" setup>
-import type { ConfigProviderThemeVars } from 'wot-design-uni'
-
-const themeVars: ConfigProviderThemeVars = {
-  // colorTheme: 'red',
-  // buttonPrimaryBgColor: '#07c160',
-  // buttonPrimaryColor: '#07c160',
-}
+import { CAMPUS_THEME } from '@/constants/theme'
 </script>
 
 <template>
-  <wd-config-provider :theme-vars="themeVars">
+  <wd-config-provider :theme-vars="CAMPUS_THEME">
     <slot />
     <wd-toast />
     <wd-message-box />

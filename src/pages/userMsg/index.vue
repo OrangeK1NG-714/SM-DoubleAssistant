@@ -9,10 +9,10 @@
 
 <script lang="ts" setup>
 import { onLoad } from '@dcloudio/uni-app'
+import { uploadStudentResume } from '@/adapters/http/authenticated-upload'
 import { getStudentMsg, writeStdInfo } from '@/api/stdInfo'
 import { useSafeArea } from '@/composables/useSafeArea'
 import { useUserStore } from '@/store/user'
-import { getEnvBaseUrl } from '@/utils'
 
 // 定义表单数据类型
 interface StudentForm {
@@ -108,7 +108,7 @@ async function loadExistingData() {
     uni.hideLoading()
   }
 }
-function doUploadFile(tempFilePath: string, fileName: string) {
+async function doUploadFile(tempFilePath: string, fileName: string) {
   const studentId = useUserStore().userInfo.username
   if (!studentId || !fileName || !tempFilePath) {
     uni.showToast({ title: '文件信息获取失败', icon: 'none' })
@@ -116,26 +116,17 @@ function doUploadFile(tempFilePath: string, fileName: string) {
     return
   }
 
-  uni.uploadFile({
-    url: `${getEnvBaseUrl()}/api/student/uploadResume`,
-    filePath: tempFilePath,
-    name: 'file',
-    formData: { fileName, studentId },
-    success(uploadRes) {
-      if (uploadRes.statusCode === 200) {
-        uni.showToast({ title: '上传成功', icon: 'success' })
-        formData.value.resumeName = fileName
-      }
-      else {
-        uni.showToast({ title: '上传失败', icon: 'none' })
-      }
-      isUploading.value = false
-    },
-    fail() {
-      uni.showToast({ title: '上传失败', icon: 'none' })
-      isUploading.value = false
-    },
-  })
+  try {
+    await uploadStudentResume({ tempFilePath, fileName, studentId })
+    uni.showToast({ title: '上传成功', icon: 'success' })
+    formData.value.resumeName = fileName
+  }
+  catch {
+    uni.showToast({ title: '上传失败或登录已过期', icon: 'none' })
+  }
+  finally {
+    isUploading.value = false
+  }
 }
 
 function uploadResume() {
